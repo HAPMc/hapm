@@ -1,19 +1,29 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>days calculator</title>
+<title>Visa days calculator 90 days per 180 days</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:24px 16px;}
 .wrap{max-width:860px;margin:0 auto;padding:1rem 0;}
-h1{font-size:18px;font-weight:500;margin-bottom:1.5rem;color:#1a1a1a;}
+
+.person-bar{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;padding:12px 14px;background:#fff;border-radius:10px;border:0.5px solid rgba(0,0,0,0.12);flex-wrap:wrap;}
+.person-bar label{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
+.person-select{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;background:#fff;color:#1a1a1a;font-size:14px;cursor:pointer;min-width:140px;}
+.person-name-input{flex:1;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;color:#1a1a1a;font-size:14px;min-width:140px;max-width:220px;}
+.person-name-input:focus{outline:none;border-color:rgba(0,0,0,0.4);}
+.save-btn{margin-left:auto;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 14px;font:inherit;background:#fff;color:#1a1a1a;cursor:pointer;font-size:13px;white-space:nowrap;}
+.save-btn:hover{background:#ebebea;}
+.save-status{font-size:12px;color:#3B6D11;white-space:nowrap;opacity:0;transition:opacity 0.4s;}
+
 .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem;}
 .metric{background:#ebebea;border-radius:8px;padding:14px 12px;}
 .m-lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
 .m-val{font-size:32px;font-weight:500;line-height:1;}
 .m-sub{font-size:12px;margin-top:3px;color:#777;}
+.m-rollover{font-size:11px;margin-top:6px;padding:5px 8px;background:#fff;border-radius:6px;border:0.5px solid rgba(0,0,0,0.1);line-height:1.4;display:none;}
 .c-ok{color:#0F6E56;}.c-warn{color:#BA7517;}.c-over{color:#A32D2D;}
 
 .prog-wrap{margin-bottom:1.25rem;}
@@ -72,155 +82,345 @@ button:hover{background:#ebebea;}
 .months-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
 .cal-dow{font-size:11px;color:#777;text-align:center;padding:4px 0;font-weight:500;}
-.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:12px;color:#1a1a1a;transition:background 0.1s;}
+.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:12px;color:#1a1a1a;}
 .cal-day.empty{pointer-events:none;}
 .cal-day.out-win{color:#aaa;opacity:0.5;}
 .cal-day.in-win{background:#ebebea;}
 .cal-day.stay-day{color:#fff!important;font-weight:500;}
+.cal-day.rollover-day{box-shadow:inset 0 0 0 1.5px #639922;}
 .cal-day:not(.empty):hover{outline:0.5px solid rgba(0,0,0,0.2);cursor:pointer;}
 .cal-day-num{position:relative;z-index:1;pointer-events:none;}
 .cal-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
 .cal-day:hover .cal-tip{display:block;}
+
+/* Rollover forecast */
+.forecast-section{margin-top:1.5rem;}
+.forecast-intro{font-size:13px;color:#777;margin-bottom:10px;line-height:1.5;}
+.forecast-table{width:100%;border-collapse:collapse;}
+.forecast-table thead tr{border-bottom:0.5px solid rgba(0,0,0,0.12);}
+.forecast-table th{font-size:11px;color:#777;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;text-align:left;}
+.forecast-table td{padding:9px 10px;font-size:13px;border-bottom:0.5px solid rgba(0,0,0,0.07);}
+.forecast-table tbody tr:last-child td{border-bottom:none;}
+.forecast-table tbody tr:hover td{background:#f0efed;}
+.fc-range{font-weight:500;color:#1a1a1a;white-space:nowrap;}
+.fc-days{color:#0F6E56;font-weight:500;white-space:nowrap;}
+.fc-running{font-size:12px;color:#777;}
+.fc-note{font-size:12px;color:#777;}
+.forecast-empty{font-size:13px;color:#777;padding:8px 0;}
+.fc-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;background:#EAF3DE;color:#3B6D11;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Шенгенский визовый калькулятор — 90/180</h1>
+  <h1 style="font-size:18px;font-weight:500;margin-bottom:1.25rem;">Visa days calculator &mdash; 90 days per 180 days</h1>
 
-  <div class="metrics">
-    <div class="metric"><div class="m-lbl">Использовано</div><div class="m-val" id="days-used">0</div><div class="m-sub">из 90 дней</div></div>
-    <div class="metric"><div class="m-lbl">Осталось</div><div class="m-val" id="days-rem">90</div><div class="m-sub">дней</div></div>
-    <div class="metric"><div class="m-lbl">Статус</div><div class="m-val" id="status-val" style="font-size:20px;padding-top:6px;">ОК</div></div>
+  <div class="person-bar">
+    <label>Person</label>
+    <select class="person-select" id="person-select" onchange="switchPerson()">
+      <option value="0">Person 1</option>
+      <option value="1">Person 2</option>
+      <option value="2">Person 3</option>
+    </select>
+    <input class="person-name-input" type="text" id="person-name" placeholder="Enter name (optional)" oninput="updatePersonName()">
+    <button class="save-btn" onclick="saveData()">Save data</button>
+    <span class="save-status" id="save-status">Saved</span>
   </div>
 
-  <div class="over-banner" id="over-banner">Лимит превышен! Вы провели более 90 дней в Шенгенской зоне в течение 180-дневного периода.</div>
-  <div class="warn-banner" id="warn-banner">Внимание: использовано более 75 дней. Скоро достигнете лимита.</div>
+  <div class="metrics">
+    <div class="metric"><div class="m-lbl">Days used</div><div class="m-val" id="days-used">0</div><div class="m-sub">of 90 days</div></div>
+    <div class="metric">
+      <div class="m-lbl">Days remaining</div>
+      <div class="m-val" id="days-rem">90</div>
+      <div class="m-sub">days left</div>
+      <div class="m-rollover" id="rollover-info"></div>
+    </div>
+    <div class="metric"><div class="m-lbl">Status</div><div class="m-val" id="status-val" style="font-size:20px;padding-top:6px;">OK</div></div>
+  </div>
+
+  <div class="over-banner" id="over-banner">Limit exceeded! You have spent more than 90 days in the Schengen Area within the 180-day period.</div>
+  <div class="warn-banner" id="warn-banner">Warning: more than 75 days used. You are approaching the limit.</div>
 
   <div class="prog-wrap">
     <div class="prog-bg"><div class="prog-fill" id="prog-fill" style="width:0%;background:#1D9E75;"></div></div>
-    <div class="prog-labels"><span>0</span><span>45</span><span>90 дней</span></div>
+    <div class="prog-labels"><span>0</span><span>45</span><span>90 days</span></div>
   </div>
 
   <div class="check-row">
-    <span>Дата проверки:</span>
+    <span>Reference date:</span>
     <input type="date" id="check-date">
   </div>
 
   <div class="tl-section">
-    <div class="sec-hd">180-дневное окно — бегунок</div>
+    <div class="sec-hd">180-day window — timeline slider</div>
     <div class="tl-bar" id="tl-bar"></div>
     <div class="tl-dates"><span class="tl-d" id="tl-s"></span><span class="tl-d" id="tl-m"></span><span class="tl-d" id="tl-e"></span></div>
   </div>
 
   <div class="form-section">
-    <div class="sec-hd">Добавить поездку</div>
+    <div class="sec-hd">Add a stay</div>
     <div class="form-row">
-      <div class="fgrp"><span class="flbl">Дата въезда</span><input type="date" id="new-start"></div>
-      <div class="fgrp"><span class="flbl">Дата выезда</span><input type="date" id="new-end"></div>
-      <button onclick="addStay()" style="height:36px;align-self:flex-end;">+ Добавить</button>
+      <div class="fgrp"><span class="flbl">Entry date</span><input type="date" id="new-start"></div>
+      <div class="fgrp"><span class="flbl">Exit date</span><input type="date" id="new-end"></div>
+      <button onclick="addStay()" style="height:36px;align-self:flex-end;">+ Add</button>
     </div>
   </div>
 
   <div class="stays-section">
-    <div class="sec-hd">Поездки</div>
-    <div id="stays-list"><p class="empty-note">Поездки не добавлены.</p></div>
+    <div class="sec-hd">Stays</div>
+    <div id="stays-list"><p class="empty-note">No stays added yet.</p></div>
   </div>
 
   <div class="cal-section">
-    <div class="sec-hd">Календарь — 180-дневное окно</div>
+    <div class="sec-hd">Calendar — 180-day window</div>
     <div class="cal-legend">
-      <div class="leg-item"><div class="leg-swatch" style="background:#ebebea;border:0.5px solid rgba(0,0,0,0.1);"></div><span>В окне (вне поездки)</span></div>
-      <div class="leg-item"><div class="leg-swatch" style="background:#1D9E75;"></div><span>Пребывание</span></div>
-      <div class="leg-item"><div class="leg-swatch" style="border:1.5px solid #D85A30;background:none;"></div><span>Дата проверки</span></div>
+      <div class="leg-item"><div class="leg-swatch" style="background:#ebebea;border:0.5px solid rgba(0,0,0,0.1);"></div><span>In window (no stay)</span></div>
+      <div class="leg-item"><div class="leg-swatch" style="background:#1D9E75;"></div><span>Stay</span></div>
+      <div class="leg-item"><div class="leg-swatch" style="border:1.5px solid #D85A30;background:none;"></div><span>Reference date</span></div>
+      <div class="leg-item"><div class="leg-swatch" style="border:1.5px solid #639922;background:none;"></div><span>Day rolls off (+1 free)</span></div>
     </div>
     <div class="months-wrap" id="cal-months"></div>
+  </div>
+
+  <!-- Rollover forecast -->
+  <div class="forecast-section">
+    <div class="sec-hd">Rollover forecast — when days free up</div>
+    <p class="forecast-intro">Each past stay day exits the 180-day window exactly 180 days after it occurred, freeing up one additional day of allowed stay. The table below shows all upcoming rollover periods.</p>
+    <div id="forecast-body"></div>
   </div>
 </div>
 
 <script>
 const COLORS=['#1D9E75','#7F77DD','#378ADD','#D85A30','#D4537E','#BA7517'];
-const MONTHS_RU=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-const DOW=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-let stays=[],nextId=1,checkDate=today0(),dragState=null;
+const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['Mo','Tu','We','Th','Fr','Sa','Su'];
+const NUM_PERSONS=3;
 
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
-function ymd(d){return d.toISOString().slice(0,10);}
-function fmtd(d){return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+
+function parseLocal(str){
+  if(!str)return null;
+  const p=str.split('-').map(Number);
+  if(p.length!==3||p.some(isNaN))return null;
+  const d=new Date(p[0],p[1]-1,p[2]);d.setHours(0,0,0,0);return d;
+}
+
+function ymd(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function fmtShort(d){
+  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+}
+function fmtd(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function fmtFull(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 function winBounds(cd){const e=new Date(cd);e.setHours(0,0,0,0);const s=new Date(e);s.setDate(s.getDate()-179);return{s,e};}
+
+let currentPerson=0;
+let persons=Array.from({length:NUM_PERSONS},()=>({name:'',stays:[],nextId:1,checkDate:today0()}));
+
+function curP(){return persons[currentPerson];}
+function getStays(){return curP().stays;}
+function getCheckDate(){return curP().checkDate;}
+function setCheckDate(d){curP().checkDate=d;}
+
+function saveData(){
+  try{
+    const data=persons.map(p=>({
+      name:p.name,checkDate:ymd(p.checkDate),nextId:p.nextId,
+      stays:p.stays.map(s=>({id:s.id,s:ymd(s.s),e:ymd(s.e)}))
+    }));
+    localStorage.setItem('schengen_v2',JSON.stringify(data));
+    const ss=document.getElementById('save-status');
+    ss.style.opacity='1';setTimeout(()=>ss.style.opacity='0',2200);
+  }catch(err){alert('Could not save — open the HTML file locally in a browser for full save support.');}
+}
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem('schengen_v2');if(!raw)return;
+    const data=JSON.parse(raw);
+    data.forEach((p,i)=>{
+      if(i>=NUM_PERSONS)return;
+      persons[i].name=p.name||'';
+      persons[i].nextId=p.nextId||1;
+      persons[i].checkDate=parseLocal(p.checkDate)||today0();
+      persons[i].stays=(p.stays||[]).map(s=>({id:s.id,s:parseLocal(s.s),e:parseLocal(s.e)}));
+    });
+  }catch(e){}
+}
+
+function switchPerson(){currentPerson=parseInt(document.getElementById('person-select').value);syncPersonUI();render();}
+function syncPersonUI(){
+  const p=curP();
+  document.getElementById('person-name').value=p.name;
+  document.getElementById('check-date').value=ymd(p.checkDate);
+  updateSelectLabels();
+}
+function updatePersonName(){curP().name=document.getElementById('person-name').value.trim();updateSelectLabels();}
+function updateSelectLabels(){
+  const sel=document.getElementById('person-select');
+  persons.forEach((p,i)=>{sel.options[i].text=p.name||'Person '+(i+1);});
+}
 
 function daysInWin(cd){
   const{s,e}=winBounds(cd);let tot=0;
-  for(const st of stays){
+  for(const st of getStays()){
     const a=new Date(Math.max(st.s,s)),b=new Date(Math.min(st.e,e));
     if(a<=b)tot+=Math.round((b-a)/864e5)+1;
   }return tot;
 }
 function stayLen(st){return Math.round((st.e-st.s)/864e5)+1;}
 function getStayForDay(d){
+  const stays=getStays();
   for(let i=0;i<stays.length;i++){const st=stays[i];if(d>=st.s&&d<=st.e)return{st,i};}return null;
+}
+
+/* Build a sorted list of all future rollover events (date → count freed) */
+function getRolloverEvents(){
+  const{s:winS}=winBounds(getCheckDate());
+  const events={};
+  for(const st of getStays()){
+    const dayS=new Date(Math.max(st.s,winS));
+    const dayE=new Date(Math.min(st.e,getCheckDate()));
+    let cur=new Date(dayS);
+    while(cur<=dayE){
+      const rollDate=new Date(cur);rollDate.setDate(rollDate.getDate()+180);
+      const key=ymd(rollDate);
+      if(!events[key])events[key]={date:new Date(rollDate),count:0};
+      events[key].count++;
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+  return events;
+}
+
+function getNextRollover(){
+  const events=getRolloverEvents();
+  const future=Object.values(events).filter(e=>e.date>getCheckDate()).sort((a,b)=>a.date-b.date);
+  return future.length?future[0]:null;
+}
+
+/*
+  Group consecutive rollover dates into contiguous ranges for the forecast table.
+  Returns array of {start, end, days, runningTotal} where:
+    start/end = first/last date of the consecutive block
+    days      = total days freed in this block
+    runningTotal = cumulative freed days after this block (from checkDate perspective)
+*/
+function buildForecastRanges(){
+  const cd=getCheckDate();
+  const events=getRolloverEvents();
+  const future=Object.values(events)
+    .filter(e=>e.date>cd)
+    .sort((a,b)=>a.date-b.date);
+
+  if(!future.length)return[];
+
+  const ranges=[];
+  let rangeStart=future[0].date;
+  let rangeEnd=future[0].date;
+  let rangeDays=future[0].count;
+
+  for(let i=1;i<future.length;i++){
+    const prev=future[i-1].date;
+    const curr=future[i].date;
+    const diff=Math.round((curr-prev)/864e5);
+    if(diff===1){
+      // consecutive — extend range
+      rangeEnd=curr;
+      rangeDays+=future[i].count;
+    }else{
+      ranges.push({start:new Date(rangeStart),end:new Date(rangeEnd),days:rangeDays});
+      rangeStart=curr;rangeEnd=curr;rangeDays=future[i].count;
+    }
+  }
+  ranges.push({start:new Date(rangeStart),end:new Date(rangeEnd),days:rangeDays});
+
+  // Add running totals: how many days will be free after each period
+  const usedNow=daysInWin(cd);
+  let freed=0;
+  ranges.forEach(r=>{
+    freed+=r.days;
+    r.freeAfter=Math.min(90,90-(usedNow-freed)); // days available after this rollover
+    r.freedSoFar=freed;
+  });
+  return ranges;
 }
 
 function addStay(){
   const sv=document.getElementById('new-start').value,ev=document.getElementById('new-end').value;
-  if(!sv||!ev){alert('Выберите обе даты');return;}
-  const sd=new Date(sv);sd.setHours(0,0,0,0);
-  const ed=new Date(ev);ed.setHours(0,0,0,0);
-  if(sd>ed){alert('Дата въезда позже даты выезда');return;}
-  stays.push({id:nextId++,s:sd,e:ed});render();
+  if(!sv||!ev){alert('Please select both dates');return;}
+  const sd=parseLocal(sv),ed=parseLocal(ev);
+  if(!sd||!ed)return;
+  if(sd>ed){alert('Entry date is after exit date');return;}
+  const p=curP();p.stays.push({id:p.nextId++,s:sd,e:ed});render();
 }
-function removeStay(id){stays=stays.filter(x=>x.id!==id);render();}
+function removeStay(id){curP().stays=curP().stays.filter(x=>x.id!==id);render();}
 function updateStay(id,field,val){
-  const st=stays.find(x=>x.id===id);if(!st)return;
-  const d=new Date(val);d.setHours(0,0,0,0);
+  const st=curP().stays.find(x=>x.id===id);if(!st)return;
+  const d=parseLocal(val);if(!d)return;
   if(field==='s'&&d<=st.e)st.s=d;
   else if(field==='e'&&d>=st.s)st.e=d;
   render();
 }
 
 function render(){
-  const used=daysInWin(checkDate),rem=Math.max(0,90-used),pct=Math.min(100,(used/90)*100);
+  const cd=getCheckDate();
+  const used=daysInWin(cd),rem=Math.max(0,90-used),pct=Math.min(100,(used/90)*100);
   const cls=used>90?'c-over':used>75?'c-warn':'c-ok';
   el('days-used').textContent=used;el('days-used').className='m-val '+cls;
   el('days-rem').textContent=rem;el('days-rem').className='m-val '+cls;
   const sv=el('status-val');
-  if(used>90){sv.textContent='Превышен';sv.className='m-val c-over';}
-  else if(used>75){sv.textContent='Внимание';sv.className='m-val c-warn';}
-  else{sv.textContent='ОК';sv.className='m-val c-ok';}
-  const pf=el('prog-fill');
-  pf.style.width=pct+'%';pf.style.background=used>90?'#A32D2D':used>75?'#BA7517':'#1D9E75';
+  if(used>90){sv.textContent='Exceeded';sv.className='m-val c-over';}
+  else if(used>75){sv.textContent='Warning';sv.className='m-val c-warn';}
+  else{sv.textContent='OK';sv.className='m-val c-ok';}
+  el('prog-fill').style.width=pct+'%';
+  el('prog-fill').style.background=used>90?'#A32D2D':used>75?'#BA7517':'#1D9E75';
   el('over-banner').style.display=used>90?'block':'none';
   el('warn-banner').style.display=(used>75&&used<=90)?'block':'none';
-  renderTL();renderList();renderCalendar();
+
+  const ri=el('rollover-info');
+  const next=getNextRollover();
+  if(next&&used>0){
+    const daysUntil=Math.round((next.date-cd)/864e5);
+    const dw=next.count===1?'day':'days';
+    const uw=daysUntil===0?'today':daysUntil===1?'tomorrow':`in ${daysUntil} days`;
+    ri.innerHTML=`<span style="color:#3B6D11">+${next.count} ${dw} free up ${uw}</span><br><span style="color:#777">${fmtFull(next.date)} — past stay exits window</span>`;
+    ri.style.display='block';
+  }else ri.style.display='none';
+
+  renderTL();renderList();renderCalendar();renderForecast();
 }
 
 function renderTL(){
   const bar=el('tl-bar');bar.innerHTML='';
-  const{s,e}=winBounds(checkDate);const span=e-s;
+  const cd=getCheckDate();
+  const{s,e}=winBounds(cd);const span=e-s;
   function pct(d){return Math.max(0,Math.min(100,((d-s)/span)*100));}
   let mc=new Date(s);mc.setDate(1);mc.setMonth(mc.getMonth()+1);
   while(mc<=e){
     const p=pct(mc);
     const tick=mk('div','month-tick');tick.style.left=p+'%';
     const lbl=mk('div','month-lbl');lbl.style.left=p+'%';
-    lbl.textContent=mc.toLocaleDateString('ru-RU',{month:'short'});
+    lbl.textContent=mc.toLocaleDateString('en-GB',{month:'short'});
     bar.appendChild(tick);bar.appendChild(lbl);
     mc=new Date(mc);mc.setMonth(mc.getMonth()+1);
   }
-  const ckp=pct(checkDate);
+  const ckp=pct(cd);
   const ckLine=mk('div','ck-line');ckLine.style.left=ckp+'%';
-  const ckLbl=mk('div','ck-lbl');ckLbl.style.left=ckp+'%';ckLbl.textContent='сегодня';
+  const ckLbl=mk('div','ck-lbl');ckLbl.style.left=ckp+'%';ckLbl.textContent='today';
   bar.appendChild(ckLbl);bar.appendChild(ckLine);
-  stays.forEach((st,i)=>{
+  getStays().forEach((st,i)=>{
     const color=COLORS[i%COLORS.length];
     const ss=new Date(Math.max(st.s,s)),se=new Date(Math.min(st.e,e));
     if(ss>se)return;
     const lp=pct(ss),rp=pct(new Date(se.getTime()+864e5));
     const wp=Math.max(rp-lp,0.4);
-    const seg=mk('div','seg');seg.style.left=lp+'%';seg.style.width=wp+'%';seg.style.background=color;seg.dataset.id=st.id;seg.dataset.type='move';
+    const seg=mk('div','seg');seg.style.cssText=`left:${lp}%;width:${wp}%;background:${color}`;seg.dataset.id=st.id;seg.dataset.type='move';
     const hl=mk('div','hndl hndl-l');hl.dataset.id=st.id;hl.dataset.type='left';
     const hr=mk('div','hndl hndl-r');hr.dataset.id=st.id;hr.dataset.type='right';
     const inner=mk('div','seg-inner');inner.dataset.id=st.id;inner.dataset.type='move';
-    const lbl=mk('div','seg-lbl');lbl.textContent=stayLen(st)+'д';lbl.dataset.id=st.id;lbl.dataset.type='move';
+    const lbl=mk('div','seg-lbl');lbl.textContent=stayLen(st)+'d';lbl.dataset.id=st.id;lbl.dataset.type='move';
     inner.appendChild(lbl);seg.appendChild(hl);seg.appendChild(inner);seg.appendChild(hr);bar.appendChild(seg);
   });
   el('tl-s').textContent=fmtd(s);
@@ -229,10 +429,10 @@ function renderTL(){
 }
 
 function renderList(){
-  const list=el('stays-list');
-  if(!stays.length){list.innerHTML='<p class="empty-note">Поездки не добавлены.</p>';return;}
+  const list=el('stays-list'),stays=getStays();
+  if(!stays.length){list.innerHTML='<p class="empty-note">No stays added yet.</p>';return;}
   list.innerHTML=stays.map((st,i)=>{
-    const color=COLORS[i%COLORS.length];const len=stayLen(st);
+    const color=COLORS[i%COLORS.length];
     return`<div class="stay-row">
       <div class="dot" style="background:${color}"></div>
       <div class="stay-di">
@@ -240,48 +440,52 @@ function renderList(){
         <span style="color:#777">—</span>
         <input type="date" value="${ymd(st.e)}" onchange="updateStay(${st.id},'e',this.value)">
       </div>
-      <span class="stay-cnt">${len} дн.</span>
+      <span class="stay-cnt">${stayLen(st)} days</span>
       <button class="rm" onclick="removeStay(${st.id})">×</button>
     </div>`;
   }).join('');
 }
 
 function renderCalendar(){
-  const{s:winS,e:winE}=winBounds(checkDate);
+  const cd=getCheckDate();
+  const{s:winS,e:winE}=winBounds(cd);
+  const rollDates=getRolloverEvents();
   const months=[];
   let cur=new Date(winS);cur.setDate(1);
   const last=new Date(winE);last.setDate(1);
   while(cur<=last){months.push(new Date(cur));cur.setMonth(cur.getMonth()+1);}
   const wrap=el('cal-months');wrap.innerHTML='';
-  months.forEach(m=>wrap.appendChild(buildMonth(m,winS,winE)));
+  months.forEach(m=>wrap.appendChild(buildMonth(m,winS,winE,rollDates,cd)));
 }
 
-function buildMonth(m,winS,winE){
+function buildMonth(m,winS,winE,rollDates,cd){
   const year=m.getFullYear(),month=m.getMonth();
-  const container=mk('div','');container.style.cssText='min-width:0;';
+  const container=mk('div','');container.style.minWidth='0';
   const hdr=mk('div','');
   hdr.style.cssText='font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:6px;text-align:center;';
-  hdr.textContent=MONTHS_RU[month]+' '+year;container.appendChild(hdr);
+  hdr.textContent=MONTHS_EN[month]+' '+year;container.appendChild(hdr);
   const grid=mk('div','cal-grid');
   DOW.forEach(d=>{const c=mk('div','cal-dow');c.textContent=d;grid.appendChild(c);});
-  const firstDay=new Date(year,month,1);
-  let dow=(firstDay.getDay()+6)%7;
+  let dow=(new Date(year,month,1).getDay()+6)%7;
   for(let i=0;i<dow;i++)grid.appendChild(mk('div','cal-day empty'));
-  const daysInMonth=new Date(year,month+1,0).getDate();
-  for(let d=1;d<=daysInMonth;d++){
+  const dim=new Date(year,month+1,0).getDate();
+  for(let d=1;d<=dim;d++){
     const date=new Date(year,month,d);date.setHours(0,0,0,0);
     const cell=mk('div','cal-day');
     const inWin=date>=winS&&date<=winE;
-    const isCheck=date.getTime()===checkDate.getTime();
+    const isCheck=date.getTime()===cd.getTime();
     const match=getStayForDay(date);
+    const rollKey=ymd(date),isRollover=!!rollDates[rollKey];
     if(!inWin)cell.classList.add('out-win');else cell.classList.add('in-win');
     if(match){cell.classList.add('stay-day');cell.style.background=COLORS[match.i%COLORS.length];}
     if(isCheck)cell.style.boxShadow='inset 0 0 0 2px #D85A30';
+    if(isRollover&&!match)cell.classList.add('rollover-day');
     if(inWin){
       const tip=mk('div','cal-tip');
-      let txt=fmtd(date);
-      if(match)txt+=` · Поездка ${match.i+1} (${stayLen(match.st)} дн.)`;
-      if(isCheck)txt+=' · Дата проверки';
+      let txt=fmtFull(date);
+      if(match)txt+=` · Stay ${match.i+1} (${stayLen(match.st)} days)`;
+      if(isCheck)txt+=' · Reference date';
+      if(isRollover)txt+=` · +${rollDates[rollKey].count} day(s) free up`;
       tip.textContent=txt;cell.appendChild(tip);
     }
     const num=mk('div','cal-day-num');num.textContent=d;cell.appendChild(num);grid.appendChild(cell);
@@ -289,23 +493,64 @@ function buildMonth(m,winS,winE){
   container.appendChild(grid);return container;
 }
 
-const bar=document.getElementById('tl-bar');
-bar.addEventListener('mousedown',startDrag);
-bar.addEventListener('touchstart',e=>{e.preventDefault();startDrag(e.touches[0]);},{passive:false});
+function renderForecast(){
+  const cd=getCheckDate();
+  const used=daysInWin(cd);
+  const fb=el('forecast-body');
+  const ranges=buildForecastRanges();
+
+  if(!ranges.length){
+    fb.innerHTML='<p class="forecast-empty">No rollover events — no past stays recorded within the current 180-day window.</p>';
+    return;
+  }
+
+  const rows=ranges.map((r,idx)=>{
+    const isSameDay=ymd(r.start)===ymd(r.end);
+    const rangeStr=isSameDay
+      ? fmtShort(r.start)
+      : fmtShort(r.start)+' &ndash; '+fmtShort(r.end);
+
+    // Days available after this rollover (cannot exceed 90)
+    const freeAfter=Math.max(0,Math.min(90,90-(used-r.freedSoFar)));
+    const daysUntilStart=Math.round((r.start-cd)/864e5);
+    const whenStr=daysUntilStart===0?'today':daysUntilStart===1?'tomorrow':`in ${daysUntilStart} days`;
+
+    return`<tr>
+      <td class="fc-range">${rangeStr}</td>
+      <td><span class="fc-badge">+${r.days} day${r.days===1?'':'s'}</span></td>
+      <td class="fc-running">${freeAfter} / 90 days available</td>
+      <td class="fc-note">${whenStr}</td>
+    </tr>`;
+  }).join('');
+
+  fb.innerHTML=`<table class="forecast-table">
+    <thead><tr>
+      <th>Period when days are freed</th>
+      <th>Days freed</th>
+      <th>Available after</th>
+      <th>Starts</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// Drag
+let dragState=null;
+const tlBar=document.getElementById('tl-bar');
+tlBar.addEventListener('mousedown',startDrag);
+tlBar.addEventListener('touchstart',e=>{e.preventDefault();startDrag(e.touches[0]);},{passive:false});
 function startDrag(e){
-  const t=e.target;const id=parseInt(t.dataset.id);const type=t.dataset.type;
+  const t=e.target,id=parseInt(t.dataset.id),type=t.dataset.type;
   if(!id||!type)return;
-  const st=stays.find(x=>x.id===id);if(!st)return;
-  dragState={id,type,startX:e.clientX,origS:new Date(st.s),origE:new Date(st.e),rect:bar.getBoundingClientRect()};
+  const st=curP().stays.find(x=>x.id===id);if(!st)return;
+  dragState={id,type,startX:e.clientX,origS:new Date(st.s),origE:new Date(st.e),rect:tlBar.getBoundingClientRect()};
 }
 document.addEventListener('mousemove',onDrag);
 document.addEventListener('touchmove',e=>{if(dragState){e.preventDefault();onDrag(e.touches[0]);}},{passive:false});
 function onDrag(e){
   if(!dragState)return;
-  const dx=e.clientX-dragState.startX;
-  const pxPerDay=dragState.rect.width/179;
-  const delta=Math.round(dx/pxPerDay);
-  const st=stays.find(x=>x.id===dragState.id);if(!st)return;
+  const delta=Math.round((e.clientX-dragState.startX)/(dragState.rect.width/179));
+  const st=curP().stays.find(x=>x.id===dragState.id);if(!st)return;
   if(dragState.type==='move'){
     const ns=new Date(dragState.origS);ns.setDate(ns.getDate()+delta);
     const ne=new Date(dragState.origE);ne.setDate(ne.getDate()+delta);
@@ -322,21 +567,15 @@ function onDrag(e){
 document.addEventListener('mouseup',()=>dragState=null);
 document.addEventListener('touchend',()=>dragState=null);
 
-const cdInp=document.getElementById('check-date');
-cdInp.value=ymd(checkDate);
-cdInp.addEventListener('change',()=>{const d=new Date(cdInp.value);d.setHours(0,0,0,0);checkDate=d;render();});
+document.getElementById('check-date').addEventListener('change',function(){
+  const d=parseLocal(this.value);if(d){setCheckDate(d);render();}
+});
 
 function el(id){return document.getElementById(id);}
-function mk(tag,cls){const e=document.createElement(tag);e.className=cls;return e;}
+function mk(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
 
-// demo stays
-const t=today0();
-const s1=new Date(t);s1.setDate(s1.getDate()-45);
-const e1=new Date(t);e1.setDate(e1.getDate()-20);
-stays.push({id:nextId++,s:s1,e:e1});
-const s2=new Date(t);s2.setDate(s2.getDate()-10);
-const e2=new Date(t);e2.setDate(e2.getDate()-3);
-stays.push({id:nextId++,s:s2,e:e2});
+loadData();
+syncPersonUI();
 render();
 </script>
 </body>
