@@ -74,7 +74,6 @@ button:hover{background:#ebebea;}
 .warn-banner{background:#FAEEDA;border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:13px;color:#633806;display:none;}
 .over-banner{background:#FCEBEB;border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:13px;color:#501313;display:none;}
 
-/* Calendar */
 .cal-section{margin-top:0.5rem;}
 .cal-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
 .leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#777;}
@@ -93,7 +92,6 @@ button:hover{background:#ebebea;}
 .cal-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
 .cal-day:hover .cal-tip{display:block;}
 
-/* Rollover forecast */
 .forecast-section{margin-top:1.5rem;}
 .forecast-intro{font-size:13px;color:#777;margin-bottom:10px;line-height:1.5;}
 .forecast-table{width:100%;border-collapse:collapse;}
@@ -120,6 +118,11 @@ button:hover{background:#ebebea;}
       <option value="0">Person 1</option>
       <option value="1">Person 2</option>
       <option value="2">Person 3</option>
+      <option value="3">Person 4</option>
+      <option value="4">Person 5</option>
+      <option value="5">Person 6</option>
+      <option value="6">Person 7</option>
+      <option value="7">Person 8</option>
     </select>
     <input class="person-name-input" type="text" id="person-name" placeholder="Enter name (optional)" oninput="updatePersonName()">
     <button class="save-btn" onclick="saveData()">Save data</button>
@@ -181,7 +184,6 @@ button:hover{background:#ebebea;}
     <div class="months-wrap" id="cal-months"></div>
   </div>
 
-  <!-- Rollover forecast -->
   <div class="forecast-section">
     <div class="sec-hd">Rollover forecast — when days free up</div>
     <p class="forecast-intro">Each past stay day exits the 180-day window exactly 180 days after it occurred, freeing up one additional day of allowed stay. The table below shows all upcoming rollover periods.</p>
@@ -193,24 +195,17 @@ button:hover{background:#ebebea;}
 const COLORS=['#1D9E75','#7F77DD','#378ADD','#D85A30','#D4537E','#BA7517'];
 const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DOW=['Mo','Tu','We','Th','Fr','Sa','Su'];
-const NUM_PERSONS=3;
+const NUM_PERSONS=8;
 
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
-
 function parseLocal(str){
   if(!str)return null;
   const p=str.split('-').map(Number);
   if(p.length!==3||p.some(isNaN))return null;
   const d=new Date(p[0],p[1]-1,p[2]);d.setHours(0,0,0,0);return d;
 }
-
-function ymd(d){
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-function fmtShort(d){
-  return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
-}
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtShort(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();}
 function fmtd(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'});}
 function fmtFull(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
 function winBounds(cd){const e=new Date(cd);e.setHours(0,0,0,0);const s=new Date(e);s.setDate(s.getDate()-179);return{s,e};}
@@ -229,7 +224,7 @@ function saveData(){
       name:p.name,checkDate:ymd(p.checkDate),nextId:p.nextId,
       stays:p.stays.map(s=>({id:s.id,s:ymd(s.s),e:ymd(s.e)}))
     }));
-    localStorage.setItem('schengen_v2',JSON.stringify(data));
+    localStorage.setItem('schengen_v3',JSON.stringify(data));
     const ss=document.getElementById('save-status');
     ss.style.opacity='1';setTimeout(()=>ss.style.opacity='0',2200);
   }catch(err){alert('Could not save — open the HTML file locally in a browser for full save support.');}
@@ -237,7 +232,7 @@ function saveData(){
 
 function loadData(){
   try{
-    const raw=localStorage.getItem('schengen_v2');if(!raw)return;
+    const raw=localStorage.getItem('schengen_v3');if(!raw)return;
     const data=JSON.parse(raw);
     data.forEach((p,i)=>{
       if(i>=NUM_PERSONS)return;
@@ -275,7 +270,6 @@ function getStayForDay(d){
   for(let i=0;i<stays.length;i++){const st=stays[i];if(d>=st.s&&d<=st.e)return{st,i};}return null;
 }
 
-/* Build a sorted list of all future rollover events (date → count freed) */
 function getRolloverEvents(){
   const{s:winS}=winBounds(getCheckDate());
   const events={};
@@ -290,8 +284,7 @@ function getRolloverEvents(){
       events[key].count++;
       cur.setDate(cur.getDate()+1);
     }
-  }
-  return events;
+  }return events;
 }
 
 function getNextRollover(){
@@ -300,50 +293,21 @@ function getNextRollover(){
   return future.length?future[0]:null;
 }
 
-/*
-  Group consecutive rollover dates into contiguous ranges for the forecast table.
-  Returns array of {start, end, days, runningTotal} where:
-    start/end = first/last date of the consecutive block
-    days      = total days freed in this block
-    runningTotal = cumulative freed days after this block (from checkDate perspective)
-*/
 function buildForecastRanges(){
   const cd=getCheckDate();
   const events=getRolloverEvents();
-  const future=Object.values(events)
-    .filter(e=>e.date>cd)
-    .sort((a,b)=>a.date-b.date);
-
+  const future=Object.values(events).filter(e=>e.date>cd).sort((a,b)=>a.date-b.date);
   if(!future.length)return[];
-
   const ranges=[];
-  let rangeStart=future[0].date;
-  let rangeEnd=future[0].date;
-  let rangeDays=future[0].count;
-
+  let rangeStart=future[0].date,rangeEnd=future[0].date,rangeDays=future[0].count;
   for(let i=1;i<future.length;i++){
-    const prev=future[i-1].date;
-    const curr=future[i].date;
-    const diff=Math.round((curr-prev)/864e5);
-    if(diff===1){
-      // consecutive — extend range
-      rangeEnd=curr;
-      rangeDays+=future[i].count;
-    }else{
-      ranges.push({start:new Date(rangeStart),end:new Date(rangeEnd),days:rangeDays});
-      rangeStart=curr;rangeEnd=curr;rangeDays=future[i].count;
-    }
+    const diff=Math.round((future[i].date-future[i-1].date)/864e5);
+    if(diff===1){rangeEnd=future[i].date;rangeDays+=future[i].count;}
+    else{ranges.push({start:new Date(rangeStart),end:new Date(rangeEnd),days:rangeDays});rangeStart=future[i].date;rangeEnd=future[i].date;rangeDays=future[i].count;}
   }
   ranges.push({start:new Date(rangeStart),end:new Date(rangeEnd),days:rangeDays});
-
-  // Add running totals: how many days will be free after each period
-  const usedNow=daysInWin(cd);
-  let freed=0;
-  ranges.forEach(r=>{
-    freed+=r.days;
-    r.freeAfter=Math.min(90,90-(usedNow-freed)); // days available after this rollover
-    r.freedSoFar=freed;
-  });
+  const usedNow=daysInWin(cd);let freed=0;
+  ranges.forEach(r=>{freed+=r.days;r.freeAfter=Math.max(0,Math.min(90,90-(usedNow-freed)));r.freedSoFar=freed;});
   return ranges;
 }
 
@@ -378,7 +342,6 @@ function render(){
   el('prog-fill').style.background=used>90?'#A32D2D':used>75?'#BA7517':'#1D9E75';
   el('over-banner').style.display=used>90?'block':'none';
   el('warn-banner').style.display=(used>75&&used<=90)?'block':'none';
-
   const ri=el('rollover-info');
   const next=getNextRollover();
   if(next&&used>0){
@@ -388,7 +351,6 @@ function render(){
     ri.innerHTML=`<span style="color:#3B6D11">+${next.count} ${dw} free up ${uw}</span><br><span style="color:#777">${fmtFull(next.date)} — past stay exits window</span>`;
     ri.style.display='block';
   }else ri.style.display='none';
-
   renderTL();renderList();renderCalendar();renderForecast();
 }
 
@@ -498,31 +460,19 @@ function renderForecast(){
   const used=daysInWin(cd);
   const fb=el('forecast-body');
   const ranges=buildForecastRanges();
-
-  if(!ranges.length){
-    fb.innerHTML='<p class="forecast-empty">No rollover events — no past stays recorded within the current 180-day window.</p>';
-    return;
-  }
-
-  const rows=ranges.map((r,idx)=>{
+  if(!ranges.length){fb.innerHTML='<p class="forecast-empty">No rollover events — no past stays recorded within the current 180-day window.</p>';return;}
+  const rows=ranges.map(r=>{
     const isSameDay=ymd(r.start)===ymd(r.end);
-    const rangeStr=isSameDay
-      ? fmtShort(r.start)
-      : fmtShort(r.start)+' &ndash; '+fmtShort(r.end);
-
-    // Days available after this rollover (cannot exceed 90)
-    const freeAfter=Math.max(0,Math.min(90,90-(used-r.freedSoFar)));
+    const rangeStr=isSameDay?fmtShort(r.start):fmtShort(r.start)+' &ndash; '+fmtShort(r.end);
     const daysUntilStart=Math.round((r.start-cd)/864e5);
     const whenStr=daysUntilStart===0?'today':daysUntilStart===1?'tomorrow':`in ${daysUntilStart} days`;
-
     return`<tr>
       <td class="fc-range">${rangeStr}</td>
       <td><span class="fc-badge">+${r.days} day${r.days===1?'':'s'}</span></td>
-      <td class="fc-running">${freeAfter} / 90 days available</td>
+      <td class="fc-running">${r.freeAfter} / 90 days available</td>
       <td class="fc-note">${whenStr}</td>
     </tr>`;
   }).join('');
-
   fb.innerHTML=`<table class="forecast-table">
     <thead><tr>
       <th>Period when days are freed</th>
@@ -534,7 +484,6 @@ function renderForecast(){
   </table>`;
 }
 
-// Drag
 let dragState=null;
 const tlBar=document.getElementById('tl-bar');
 tlBar.addEventListener('mousedown',startDrag);
