@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Day Counter — Google Calendar</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:24px 16px;min-height:100vh;}
+.wrap{max-width:820px;margin:0 auto;}
+h1{font-size:18px;font-weight:500;margin-bottom:4px;}
+.subtitle{font-size:13px;color:#777;margin-bottom:1.5rem;}
+a{color:#1a73e8;}
+
+/* Config banner */
+.config-banner{background:#FFF8E1;border:0.5px solid #F9A825;border-radius:10px;padding:14px 16px;margin-bottom:1.5rem;font-size:13px;line-height:1.6;display:none;}
+.config-banner.show{display:block;}
+.config-banner code{background:#FFF3CD;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:12px;}
+
+/* Auth card */
+.auth-card{background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,0.12);padding:32px;text-align:center;margin-bottom:1.5rem;}
+.auth-card h2{font-size:16px;font-weight:500;margin-bottom:8px;}
+.auth-card p{font-size:13px;color:#777;margin-bottom:24px;line-height:1.5;}
+.google-btn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid #dadce0;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;color:#3c4043;transition:box-shadow 0.15s;}
+.google-btn:hover{box-shadow:0 1px 6px rgba(0,0,0,0.15);}
+.google-btn svg{width:18px;height:18px;flex-shrink:0;}
+.signed-in-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.user-pill{display:flex;align-items:center;gap:8px;background:#ebebea;border-radius:20px;padding:6px 14px 6px 8px;font-size:13px;}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:#1D9E75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.sign-out-btn{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 12px;font:inherit;background:#fff;color:#777;cursor:pointer;font-size:12px;}
+.sign-out-btn:hover{background:#ebebea;}
+
+/* Controls */
+.controls{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:1.5rem;}
+.ctrl-group{display:flex;flex-direction:column;gap:4px;}
+.ctrl-lbl{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:0.05em;}
+select,input[type=text]{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:8px 12px;font:inherit;background:#fff;color:#1a1a1a;font-size:14px;}
+.fetch-btn{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:8px 20px;font:inherit;background:#1a1a1a;color:#fff;cursor:pointer;font-size:14px;align-self:flex-end;}
+.fetch-btn:hover{background:#333;}
+.fetch-btn:disabled{background:#aaa;cursor:not-allowed;}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem;}
+@media(max-width:500px){.metrics{grid-template-columns:1fr 1fr;}}
+.metric{background:#ebebea;border-radius:8px;padding:14px 12px;}
+.m-lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.m-val{font-size:32px;font-weight:500;line-height:1;}
+.m-sub{font-size:12px;margin-top:3px;color:#777;}
+.c-ok{color:#0F6E56;}.c-warn{color:#BA7517;}.c-over{color:#0F6E56;}
+
+/* Progress */
+.prog-wrap{margin-bottom:1.5rem;}
+.prog-bg{height:8px;background:#ebebea;border-radius:4px;overflow:hidden;border:0.5px solid rgba(0,0,0,0.08);}
+.prog-fill{height:100%;border-radius:4px;transition:width 0.4s,background 0.4s;background:#1D9E75;}
+.prog-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:#777;}
+
+/* Trip list */
+.trips-section{margin-bottom:1.5rem;}
+.sec-hd{font-size:11px;font-weight:500;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.trip-table{width:100%;border-collapse:collapse;}
+.trip-table th{font-size:11px;color:#777;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;text-align:left;border-bottom:0.5px solid rgba(0,0,0,0.12);}
+.trip-table td{padding:9px 10px;font-size:13px;border-bottom:0.5px solid rgba(0,0,0,0.07);}
+.trip-table tbody tr:last-child td{border-bottom:none;}
+.trip-table tbody tr:hover td{background:#f5f5f3;}
+.trip-name{font-weight:500;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.trip-days-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;background:#EAF3DE;color:#3B6D11;}
+.empty-note{font-size:13px;color:#777;padding:8px 0;}
+.loading{font-size:13px;color:#777;padding:12px 0;display:flex;align-items:center;gap:8px;}
+.spinner{width:14px;height:14px;border:2px solid #ddd;border-top-color:#1a1a1a;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Calendar */
+.cal-section{margin-top:0.5rem;}
+.months-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(224px,1fr));gap:16px;margin-top:10px;}
+.cal-grid{display:grid;grid-template-columns:26px repeat(7,1fr);gap:2px;}
+.cal-cw-hdr{font-size:10px;color:#bbb;text-align:center;padding:3px 0;font-weight:500;}
+.cal-dow{font-size:11px;color:#777;text-align:center;padding:3px 0;font-weight:500;}
+.cal-cw{font-size:9px;color:#1a1a1a;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1;position:relative;cursor:default;}
+.cal-cw:hover .cw-tip{display:block;}
+.cw-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:5px 10px;font-size:15px;font-weight:500;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:11px;color:#1a1a1a;}
+.cal-day.empty{pointer-events:none;}
+.cal-day.other-month{color:#aaa;opacity:0.4;background:none;}
+.cal-day.trip-day{color:#fff!important;font-weight:500;background:#1D9E75;}
+.cal-day.today-day{box-shadow:inset 0 0 0 2px #D85A30;}
+.cal-day:not(.empty):hover{outline:0.5px solid rgba(0,0,0,0.2);cursor:pointer;}
+.cal-day-num{position:relative;z-index:1;pointer-events:none;}
+.cal-tip-day{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.cal-day:hover .cal-tip-day{display:block;}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#777;}
+.leg-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.month-hdr{font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:6px;text-align:center;}
+
+/* Tag filter */
+.tag-note{font-size:12px;color:#777;margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trip Day Counter</h1>
+  <p class="subtitle">Pulls events tagged <strong>"trip"</strong> from your Google Calendar and counts travel days for the year. Target: <strong>183 days</strong>. &nbsp;<a href="index.html">← Back to Visa Calculator</a></p>
+
+  <!-- Config warning (shown if CLIENT_ID not set) -->
+  <div class="config-banner" id="config-banner">
+    <strong>⚙️ Setup required:</strong> Open this file and set your OAuth Client ID from
+    <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>.
+    See the <a href="#setup-guide">setup guide</a> at the bottom of this page.
+  </div>
+
+  <!-- Auth -->
+  <div class="auth-card" id="auth-card">
+    <h2>Sign in with Google</h2>
+    <p>Grant read-only access to your Google Calendar.<br>No data is stored — everything runs in your browser.</p>
+    <button class="google-btn" id="sign-in-btn" onclick="signIn()">
+      <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+  </div>
+
+  <!-- Signed-in state (hidden initially) -->
+  <div id="signed-in-area" style="display:none;">
+    <div style="margin-bottom:1.5rem;">
+      <div class="signed-in-row">
+        <div class="user-pill">
+          <div class="user-avatar" id="user-initials">?</div>
+          <span id="user-name">Loading…</span>
+        </div>
+        <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="ctrl-group">
+        <span class="ctrl-lbl">Year</span>
+        <select id="year-select"></select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-lbl">Event keyword</span>
+        <input type="text" id="keyword" value="trip" style="width:130px;">
+        <span class="tag-note">Events containing this word are counted</span>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-lbl">Target days</span>
+        <input type="text" id="target-days" value="183" style="width:80px;">
+      </div>
+      <button class="fetch-btn" id="fetch-btn" onclick="fetchTrips()">Load events</button>
+    </div>
+
+    <!-- Results (hidden until fetch) -->
+    <div id="results" style="display:none;">
+      <div class="metrics" id="metrics-row"></div>
+      <div class="prog-wrap">
+        <div class="prog-bg"><div class="prog-fill" id="prog-fill" style="width:0%;"></div></div>
+        <div class="prog-labels"><span>0</span><span id="prog-label-mid"></span><span id="prog-label-end"></span></div>
+      </div>
+
+      <div class="trips-section">
+        <div class="sec-hd">Matched events</div>
+        <div id="trips-list"></div>
+      </div>
+
+      <div class="cal-section">
+        <div class="sec-hd">Calendar view</div>
+        <div class="cal-legend">
+          <div class="leg-item"><div class="leg-swatch" style="background:#1D9E75;"></div><span>Trip day</span></div>
+          <div class="leg-item"><div class="leg-swatch" style="border:1.5px solid #D85A30;background:none;"></div><span>Today</span></div>
+        </div>
+        <div class="months-wrap" id="cal-wrap"></div>
+      </div>
+    </div>
+
+    <div id="loading-state" style="display:none;" class="loading">
+      <div class="spinner"></div><span id="loading-text">Loading events…</span>
+    </div>
+  </div><!-- /signed-in-area -->
+
+  <!-- Setup guide -->
+  <div id="setup-guide" style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid rgba(0,0,0,0.1);">
+    <div style="font-size:11px;font-weight:500;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">Setup guide — Google Cloud Console</div>
+    <ol style="font-size:13px;color:#555;line-height:2;padding-left:1.2rem;">
+      <li>Go to <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> and create a new project (e.g. <em>Trip Tracker</em>).</li>
+      <li>In the left menu: <strong>APIs &amp; Services → Library</strong> → search <em>Google Calendar API</em> → Enable.</li>
+      <li><strong>APIs &amp; Services → OAuth consent screen</strong> → choose <em>External</em> → fill App name &amp; email → Save.</li>
+      <li>On the consent screen page add scope: <code>https://www.googleapis.com/auth/calendar.readonly</code></li>
+      <li><strong>APIs &amp; Services → Credentials → Create Credentials → OAuth client ID</strong></li>
+      <li>Application type: <strong>Web application</strong>. Name: anything.</li>
+      <li>Authorised JavaScript origins: add <code>https://hapmc.github.io</code></li>
+      <li>Click <strong>Create</strong> — copy the <strong>Client ID</strong> (ends in <code>.apps.googleusercontent.com</code>).</li>
+      <li>Open this file, find <code>YOUR_GOOGLE_CLIENT_ID</code> and replace it with your Client ID. Save &amp; push to GitHub.</li>
+    </ol>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ═══════════════════════════════════════════════
+   PASTE YOUR CLIENT ID HERE (step 8 of setup guide)
+   ═══════════════════════════════════════════════ */
+const CLIENT_ID = '234327071077-o693pckhpvrbauigotp3dvncl6anbc24.apps.googleusercontent.com';
+/* ══════════════════════════════════════════════ */
+
+const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.profile';
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+let tokenClient = null;
+let accessToken = null;
+
+window.addEventListener('load', () => {
+  const isConfigured = CLIENT_ID && CLIENT_ID.endsWith('.apps.googleusercontent.com');
+  if (!isConfigured) {
+    document.getElementById('config-banner').classList.add('show');
+    document.getElementById('sign-in-btn').disabled = true;
+    document.getElementById('sign-in-btn').title = 'Set up Client ID first';
+  }
+  // Populate year selector: current year ± 3
+  const sel = document.getElementById('year-select');
+  const curY = new Date().getFullYear();
+  for (let y = curY + 1; y >= curY - 3; y--) {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y;
+    if (y === curY) opt.selected = true;
+    sel.appendChild(opt);
+  }
+});
+
+function initTokenClient() {
+  if (tokenClient) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: handleToken,
+  });
+}
+
+function signIn() {
+  initTokenClient();
+  tokenClient.requestAccessToken();
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  document.getElementById('auth-card').style.display = '';
+  document.getElementById('signed-in-area').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+}
+
+async function handleToken(resp) {
+  if (resp.error) { console.error(resp); return; }
+  accessToken = resp.access_token;
+  document.getElementById('auth-card').style.display = 'none';
+  document.getElementById('signed-in-area').style.display = 'block';
+  // Fetch user profile
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {headers:{Authorization:'Bearer '+accessToken}});
+    const u = await r.json();
+    document.getElementById('user-name').textContent = u.name || u.email || 'Signed in';
+    const initials = (u.name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    document.getElementById('user-initials').textContent = initials;
+  } catch(e) {}
+}
+
+async function fetchTrips() {
+  if (!accessToken) { alert('Please sign in first.'); return; }
+  const year = parseInt(document.getElementById('year-select').value);
+  const keyword = document.getElementById('keyword').value.trim().toLowerCase();
+  const target = parseInt(document.getElementById('target-days').value) || 183;
+  if (!keyword) { alert('Please enter a keyword.'); return; }
+
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('loading-state').style.display = 'flex';
+  document.getElementById('fetch-btn').disabled = true;
+  document.getElementById('loading-text').textContent = 'Loading events…';
+
+  const timeMin = `${year}-01-01T00:00:00Z`;
+  const timeMax = `${year}-12-31T23:59:59Z`;
+
+  let events = [];
+  let pageToken = null;
+  try {
+    do {
+      let url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&maxResults=2500&singleEvents=true&orderBy=startTime`;
+      if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
+      const r = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+      if (!r.ok) throw new Error('Calendar API error: ' + r.status);
+      const data = await r.json();
+      events = events.concat(data.items || []);
+      pageToken = data.nextPageToken || null;
+      document.getElementById('loading-text').textContent = `Loaded ${events.length} events…`;
+    } while (pageToken);
+  } catch(e) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('fetch-btn').disabled = false;
+    alert('Error fetching events: ' + e.message);
+    return;
+  }
+
+  // Filter by keyword
+  const matched = events.filter(ev => {
+    const title = (ev.summary || '').toLowerCase();
+    return title.includes(keyword);
+  });
+
+  // Build a set of trip days within the year
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31);
+  const tripDaySet = new Set(); // 'YYYY-MM-DD' strings
+  const tripDetails = []; // for table
+
+  matched.forEach(ev => {
+    // All-day events have date, timed events have dateTime
+    let evStart, evEnd;
+    if (ev.start.date) {
+      evStart = parseDate(ev.start.date);
+      evEnd = parseDate(ev.end.date); evEnd.setDate(evEnd.getDate()-1); // end is exclusive in GCal
+    } else {
+      evStart = new Date(ev.start.dateTime); evStart.setHours(0,0,0,0);
+      evEnd = new Date(ev.end.dateTime); evEnd.setHours(0,0,0,0);
+    }
+    // Clamp to year
+    const clampS = evStart < yearStart ? new Date(yearStart) : evStart;
+    const clampE = evEnd > yearEnd ? new Date(yearEnd) : evEnd;
+    if (clampS > clampE) return;
+    let daysInYear = 0;
+    let cur = new Date(clampS);
+    while (cur <= clampE) {
+      tripDaySet.add(ymd(cur));
+      daysInYear++;
+      cur.setDate(cur.getDate()+1);
+    }
+    tripDetails.push({
+      title: ev.summary || '(no title)',
+      start: evStart, end: evEnd,
+      clampDays: daysInYear,
+      totalDays: Math.round((evEnd-evStart)/864e5)+1
+    });
+  });
+
+  tripDetails.sort((a,b)=>a.start-b.start);
+  const totalDays = tripDaySet.size;
+
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('fetch-btn').disabled = false;
+  document.getElementById('results').style.display = 'block';
+
+  renderMetrics(totalDays, target, year, matched.length);
+  renderProgress(totalDays, target);
+  renderTripTable(tripDetails, year);
+  renderCalendar(year, tripDaySet);
+}
+
+function renderMetrics(total, target, year, count) {
+  const rem = Math.max(0, target - total);
+  const over = Math.max(0, total - target);
+  const reached = total >= target;
+  const cls = total >= target ? 'c-over' : total >= target * 0.9 ? 'c-warn' : 'c-ok';
+  document.getElementById('metrics-row').innerHTML = `
+    <div class="metric"><div class="m-lbl">Trip days in ${year}</div><div class="m-val ${cls}">${total}</div><div class="m-sub">days counted</div></div>
+    <div class="metric"><div class="m-lbl">Target</div><div class="m-val">${target}</div><div class="m-sub">days goal</div></div>
+    <div class="metric"><div class="m-lbl">${reached?'Over target by':'Still needed'}</div><div class="m-val ${reached?'c-over':'c-ok'}">${reached?over:rem}</div><div class="m-sub">days</div></div>`;
+}
+
+function renderProgress(total, target) {
+  const pct = Math.min(100, (total / target) * 100);
+  const pf = document.getElementById('prog-fill');
+  pf.style.width = pct + '%';
+  pf.style.background = total >= target ? '#D85A30' : total >= target * 0.9 ? '#BA7517' : '#1D9E75';
+  document.getElementById('prog-label-mid').textContent = Math.round(target/2) + ' days';
+  document.getElementById('prog-label-end').textContent = target + ' days';
+}
+
+function renderTripTable(trips, year) {
+  const wrap = document.getElementById('trips-list');
+  if (!trips.length) { wrap.innerHTML = '<p class="empty-note">No events found matching the keyword.</p>'; return; }
+  const rows = trips.map(t => {
+    const badge = t.clampDays !== t.totalDays
+      ? `<span class="trip-days-badge">${t.clampDays} in ${year}</span> <span style="font-size:12px;color:#aaa">(${t.totalDays} total)</span>`
+      : `<span class="trip-days-badge">${t.clampDays} days</span>`;
+    return `<tr>
+      <td class="trip-name" title="${esc(t.title)}">${esc(t.title)}</td>
+      <td>${fmtShort(t.start)}</td>
+      <td>${fmtShort(t.end)}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `<table class="trip-table">
+    <thead><tr><th>Event</th><th>Start</th><th>End</th><th>Days</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderCalendar(year, tripDaySet) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const wrap = document.getElementById('cal-wrap'); wrap.innerHTML = '';
+  for (let m = 0; m < 12; m++) {
+    const container = document.createElement('div');
+    container.style.minWidth = '0';
+    const hdr = document.createElement('div');
+    hdr.className = 'month-hdr';
+    hdr.textContent = MONTHS_EN[m] + ' ' + year;
+    container.appendChild(hdr);
+    const grid = document.createElement('div');
+    grid.className = 'cal-grid';
+    // CW header
+    const cwh = document.createElement('div'); cwh.className='cal-cw-hdr'; cwh.textContent='CW'; grid.appendChild(cwh);
+    DOW.forEach(d=>{const c=document.createElement('div');c.className='cal-dow';c.textContent=d;grid.appendChild(c);});
+    const firstDay = new Date(year, m, 1);
+    const startDow = (firstDay.getDay()+6)%7;
+    const firstMon = new Date(firstDay); firstMon.setDate(firstDay.getDate()-startDow);
+    grid.appendChild(makeCwCell(firstMon));
+    for (let i=0;i<startDow;i++){const e=document.createElement('div');e.className='cal-day empty';grid.appendChild(e);}
+    const dim = new Date(year, m+1, 0).getDate();
+    for (let d=1;d<=dim;d++){
+      const date = new Date(year,m,d); date.setHours(0,0,0,0);
+      const dow=(date.getDay()+6)%7;
+      if(dow===0&&d>1) grid.appendChild(makeCwCell(date));
+      const cell = document.createElement('div');
+      cell.className='cal-day';
+      const key = ymd(date);
+      const isTrip = tripDaySet.has(key);
+      const isToday = date.getTime()===today.getTime();
+      if (isTrip) cell.classList.add('trip-day');
+      if (isToday) cell.classList.add('today-day');
+      const tip = document.createElement('div'); tip.className='cal-tip-day';
+      tip.textContent = fmtFull(date) + (isTrip?' · Trip day':'');
+      cell.appendChild(tip);
+      const num = document.createElement('div'); num.className='cal-day-num'; num.textContent=d;
+      cell.appendChild(num);
+      grid.appendChild(cell);
+    }
+    container.appendChild(grid);
+    wrap.appendChild(container);
+  }
+}
+
+function makeCwCell(mondayDate){
+  const label='CW'+pad2(isoWeek(mondayDate));
+  const c=document.createElement('div');c.className='cal-cw';
+  c.appendChild(document.createTextNode(label));
+  const tip=document.createElement('div');tip.className='cw-tip';tip.textContent=label;
+  c.appendChild(tip);return c;
+}
+
+/* ── Helpers ── */
+function parseDate(str){const p=str.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function ymd(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function pad2(n){return String(n).padStart(2,'0');}
+function fmtShort(d){return pad2(d.getDate())+'.'+pad2(d.getMonth()+1)+'.'+d.getFullYear();}
+function fmtFull(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function isoWeek(date){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const dow=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dow);
+  const y=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil(((d-y)/864e5+1)/7);
+}
+</script>
+</body>
+</html>
