@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visa days calculator 90 days per 180 days</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:24px 16px;}
+.wrap{max-width:900px;margin:0 auto;padding:1rem 0;}
+.person-bar{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;padding:12px 14px;background:#fff;border-radius:10px;border:0.5px solid rgba(0,0,0,0.12);flex-wrap:wrap;}
+.person-bar label{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
+.person-select{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;background:#fff;color:#1a1a1a;font-size:14px;cursor:pointer;min-width:140px;}
+.person-name-input{flex:1;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;color:#1a1a1a;font-size:14px;min-width:140px;max-width:220px;}
+.person-name-input:focus{outline:none;border-color:rgba(0,0,0,0.4);}
+.save-btn{margin-left:auto;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 14px;font:inherit;background:#fff;color:#1a1a1a;cursor:pointer;font-size:13px;white-space:nowrap;}
+.save-btn:hover{background:#ebebea;}
+.save-status{font-size:12px;color:#3B6D11;white-space:nowrap;opacity:0;transition:opacity 0.4s;}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.25rem;}
+.metric{background:#ebebea;border-radius:8px;padding:14px 12px;}
+.m-lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.m-val{font-size:32px;font-weight:500;line-height:1;}
+.m-sub{font-size:12px;margin-top:3px;color:#777;}
+.m-rollover{font-size:11px;margin-top:6px;padding:5px 8px;background:#fff;border-radius:6px;border:0.5px solid rgba(0,0,0,0.1);line-height:1.4;display:none;}
+.c-ok{color:#0F6E56;}.c-warn{color:#BA7517;}.c-over{color:#A32D2D;}
+.prog-wrap{margin-bottom:1.25rem;}
+.prog-bg{height:6px;background:#ebebea;border-radius:3px;overflow:hidden;border:0.5px solid rgba(0,0,0,0.1);}
+.prog-fill{height:100%;border-radius:3px;transition:width 0.2s,background 0.2s;min-width:2px;}
+.prog-labels{display:flex;justify-content:space-between;margin-top:3px;font-size:11px;color:#777;}
+.sec-hd{font-size:11px;font-weight:500;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.tl-section{margin-bottom:1.25rem;}
+.tl-bar{position:relative;height:56px;background:#ebebea;border-radius:8px;border:0.5px solid rgba(0,0,0,0.1);overflow:visible;user-select:none;}
+.tl-dates{display:flex;justify-content:space-between;margin-top:4px;}
+.tl-d{font-size:11px;color:#777;}
+.seg{position:absolute;top:8px;height:40px;border-radius:5px;touch-action:none;cursor:grab;}
+.seg:active{cursor:grabbing;opacity:0.95;}
+.seg-inner{position:absolute;left:8px;right:8px;top:0;bottom:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.seg-lbl{font-size:11px;color:rgba(255,255,255,0.95);font-weight:500;white-space:nowrap;pointer-events:none;}
+.hndl{position:absolute;top:0;bottom:0;width:9px;cursor:ew-resize;z-index:2;}
+.hndl:hover{background:rgba(255,255,255,0.3);}
+.hndl-l{left:0;border-radius:5px 0 0 5px;}
+.hndl-r{right:0;border-radius:0 5px 5px 0;}
+.ck-line{position:absolute;top:-6px;bottom:-6px;width:2px;background:#D85A30;pointer-events:none;z-index:10;}
+.ck-lbl{position:absolute;top:-20px;font-size:10px;color:#D85A30;transform:translateX(-50%);pointer-events:none;white-space:nowrap;}
+.month-tick{position:absolute;top:0;bottom:0;width:0.5px;background:rgba(0,0,0,0.1);pointer-events:none;}
+.month-lbl{position:absolute;top:-16px;font-size:10px;color:#777;transform:translateX(-50%);white-space:nowrap;}
+.check-row{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem;font-size:13px;color:#777;}
+.check-row input[type=date]{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:5px 8px;font:inherit;background:#fff;color:#1a1a1a;font-size:13px;}
+.form-section{margin-bottom:1.25rem;}
+.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;}
+.fgrp{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px;}
+.flbl{font-size:12px;color:#777;}
+input[type=date]{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;background:#fff;color:#1a1a1a;font-size:13px;}
+button{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 16px;font:inherit;background:#fff;color:#1a1a1a;cursor:pointer;font-size:13px;}
+button:hover{background:#ebebea;}
+.stays-section{margin-bottom:1.5rem;}
+.stay-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#ebebea;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.stay-di{font-size:13px;flex:1;min-width:200px;}
+.stay-di input[type=date]{border:none;background:none;font:inherit;color:#1a1a1a;font-size:13px;cursor:pointer;width:110px;padding:0;}
+.stay-cnt{font-size:12px;color:#777;margin-right:2px;white-space:nowrap;}
+.rm{background:none;border:0.5px solid rgba(0,0,0,0.15);color:#777;cursor:pointer;border-radius:4px;width:24px;height:24px;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;}
+.rm:hover{border-color:#E24B4A;color:#E24B4A;}
+.empty-note{font-size:13px;color:#777;padding:8px 0;}
+.country-bar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;padding:10px 14px;background:#fff;border-radius:10px;border:0.5px solid rgba(0,0,0,0.12);flex-wrap:wrap;}
+.country-bar label{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
+.country-filter-select{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;background:#fff;color:#1a1a1a;font-size:13px;cursor:pointer;min-width:160px;}
+.country-input{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:5px 8px;font:inherit;background:#fff;color:#1a1a1a;font-size:13px;width:140px;}
+.country-input:focus{outline:none;border-color:rgba(0,0,0,0.4);}
+.stay-country{font-size:12px;color:#555;background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:5px;padding:3px 7px;min-width:100px;max-width:140px;font:inherit;cursor:text;}
+.stay-country:focus{outline:none;border-color:rgba(0,0,0,0.4);}
+.country-tag{display:inline-block;font-size:11px;background:#E8F0FD;color:#2255B0;border-radius:4px;padding:2px 7px;margin-left:4px;white-space:nowrap;}.warn-banner{background:#FAEEDA;border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:13px;color:#633806;display:none;}
+.over-banner{background:#FCEBEB;border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:13px;color:#501313;display:none;}
+
+/* Calendar */
+.cal-section{margin-top:0.5rem;}
+.cal-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#777;}
+.leg-swatch{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.months-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(224px,1fr));gap:16px;}
+.cal-grid{display:grid;grid-template-columns:26px repeat(7,1fr);gap:2px;}
+.cal-cw-hdr{font-size:10px;color:#bbb;text-align:center;padding:3px 0;font-weight:500;}
+.cal-dow{font-size:11px;color:#777;text-align:center;padding:3px 0;font-weight:500;}
+.cal-cw{font-size:9px;color:#1a1a1a;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1;position:relative;cursor:default;}
+.cal-cw:hover .cw-tip{display:block;}
+.cw-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:5px 10px;font-size:15px;font-weight:500;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:11px;color:#1a1a1a;}
+.cal-day.empty{pointer-events:none;}
+.cal-day.out-win{color:#aaa;opacity:0.4;}
+.cal-day.in-win{background:#ebebea;}
+.cal-day.stay-day{color:#fff!important;font-weight:500;}
+.cal-day.plan-day{color:#fff!important;font-weight:500;}
+.cal-day.rollover-day{box-shadow:inset 0 0 0 1.5px #639922;}
+.cal-day:not(.empty):hover{outline:0.5px solid rgba(0,0,0,0.2);cursor:pointer;}
+.cal-day-num{position:relative;z-index:1;pointer-events:none;}
+.cal-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.cal-day:hover .cal-tip{display:block;}
+
+/* Forecast */
+.forecast-section{margin-top:1.5rem;}
+.forecast-intro{font-size:13px;color:#777;margin-bottom:10px;line-height:1.5;}
+.forecast-table{width:100%;border-collapse:collapse;}
+.forecast-table thead tr{border-bottom:0.5px solid rgba(0,0,0,0.12);}
+.forecast-table th{font-size:11px;color:#777;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;text-align:left;}
+.forecast-table td{padding:9px 10px;font-size:13px;border-bottom:0.5px solid rgba(0,0,0,0.07);}
+.forecast-table tbody tr:last-child td{border-bottom:none;}
+.forecast-table tbody tr:hover td{background:#f0efed;}
+.fc-range{font-weight:500;color:#1a1a1a;white-space:nowrap;}
+.fc-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;background:#EAF3DE;color:#3B6D11;}
+.fc-running{font-size:12px;color:#777;}
+.fc-note{font-size:12px;color:#777;}
+.forecast-empty{font-size:13px;color:#777;padding:8px 0;}
+
+/* Trip simulator */
+.sim-section{margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(0,0,0,0.1);}
+.sim-desc{font-size:13px;color:#777;margin-bottom:1rem;line-height:1.5;}
+.sim-trip-row{display:flex;align-items:center;gap:8px;padding:9px 12px;background:#EDE9F8;border-radius:8px;margin-bottom:6px;flex-wrap:wrap;border:0.5px solid rgba(127,119,221,0.3);}
+.sim-trip-row .stay-di input[type=date]{color:#3C3489;}
+.dot-plan{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.sim-result{margin-top:1.25rem;}
+/* Compact result table */
+.sim-result-table{width:100%;border-collapse:collapse;margin-bottom:1.25rem;}
+.sim-result-table th{font-size:11px;color:#777;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;padding:6px 10px;text-align:left;border-bottom:0.5px solid rgba(0,0,0,0.12);}
+.sim-result-table td{padding:11px 10px;font-size:15px;border-bottom:0.5px solid rgba(0,0,0,0.07);vertical-align:middle;}
+.sim-result-table tbody tr:last-child td{border-bottom:none;}
+.sim-result-table tbody tr:hover td{background:#f0efed;}
+.sim-result-table tbody tr.row-over td{background:#FEF2F2;}
+.sim-td-trip{font-weight:500;font-size:13px;}
+.sim-td-days{color:#534AB7;font-weight:500;}
+.sim-td-used-ok{font-weight:500;}
+.sim-td-used-over{color:#A32D2D;font-weight:500;}
+.sim-td-rem-ok{color:#0F6E56;font-weight:500;}
+.sim-td-rem-warn{color:#BA7517;font-weight:500;}
+.sim-td-rem-over{color:#A32D2D;font-weight:500;}
+.sim-over-badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:#FCEBEB;color:#A32D2D;vertical-align:middle;white-space:nowrap;}
+.sim-ok-badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:#D6F0E8;color:#0F6E56;vertical-align:middle;white-space:nowrap;}
+.sim-warn-badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:#FAEEDA;color:#633806;vertical-align:middle;white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1 style="font-size:18px;font-weight:500;margin-bottom:1.25rem;">Visa days calculator &mdash; 90 days per 180 days</h1>
+
+<div class="person-bar">
+  <label>Person</label>
+  <select class="person-select" id="person-select" onchange="switchPerson()">
+    <option value="0">Person 1</option><option value="1">Person 2</option>
+    <option value="2">Person 3</option><option value="3">Person 4</option>
+    <option value="4">Person 5</option><option value="5">Person 6</option>
+    <option value="6">Person 7</option><option value="7">Person 8</option>
+  </select>
+  <input class="person-name-input" type="text" id="person-name" placeholder="Enter name (optional)" oninput="updatePersonName()">
+  <button class="save-btn" onclick="saveData()">Save</button>
+  <button class="save-btn" onclick="exportPerson()" title="Download this person's data as a file">⬇ Export</button>
+  <button class="save-btn" onclick="el('import-file').click()" title="Load data from a previously exported file">⬆ Import</button>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="importPerson(this)">
+  <span class="save-status" id="save-status">Saved</span>
+</div>
+
+<div class="country-bar">
+  <label>Country filter</label>
+  <select class="country-filter-select" id="country-filter" onchange="render()">
+    <option value="">All countries</option>
+  </select>
+</div>
+
+<div id="metrics-placeholder" style="display:none;background:#FFF8EC;border-radius:10px;padding:14px 16px;margin-bottom:1.25rem;font-size:13px;color:#8A5700;border:0.5px solid rgba(186,117,23,0.25);">
+  ⚠ Multiple countries detected — select a country above to view metrics, rollover forecast and trip simulator.
+</div>
+
+<div id="metrics-wrap">
+<div class="metrics">
+  <div class="metric"><div class="m-lbl">Days used</div><div class="m-val" id="days-used">0</div><div class="m-sub">of 90 days</div></div>
+  <div class="metric">
+    <div class="m-lbl">Days remaining</div><div class="m-val" id="days-rem">90</div>
+    <div class="m-sub">days left</div><div class="m-rollover" id="rollover-info"></div>
+  </div>
+  <div class="metric"><div class="m-lbl">Status</div><div class="m-val" id="status-val" style="font-size:20px;padding-top:6px;">OK</div></div>
+</div>
+<div class="over-banner" id="over-banner">Limit exceeded! You have spent more than 90 days within the 180-day period.</div>
+<div class="warn-banner" id="warn-banner">Warning: more than 75 days used. You are approaching the limit.</div>
+<div class="prog-wrap">
+  <div class="prog-bg"><div class="prog-fill" id="prog-fill" style="width:0%;background:#1D9E75;"></div></div>
+  <div class="prog-labels"><span>0</span><span>45</span><span>90 days</span></div>
+</div>
+</div>
+<div class="check-row"><span>Reference date:</span><input type="date" id="check-date"></div>
+
+<div class="tl-section">
+  <div class="sec-hd">180-day window — timeline slider</div>
+  <div class="tl-bar" id="tl-bar"></div>
+  <div class="tl-dates"><span class="tl-d" id="tl-s"></span><span class="tl-d" id="tl-m"></span><span class="tl-d" id="tl-e"></span></div>
+</div>
+
+<div class="form-section">
+  <div class="sec-hd">Add a stay</div>
+  <div class="form-row">
+    <div class="fgrp"><span class="flbl">Entry date</span><input type="date" id="new-start"></div>
+    <div class="fgrp"><span class="flbl">Exit date</span><input type="date" id="new-end"></div>
+    <div class="fgrp"><span class="flbl">Country</span>
+      <input class="country-input" type="text" id="new-country" placeholder="e.g. Germany" list="country-datalist" autocomplete="off">
+    </div>
+    <button onclick="addStay()" style="height:36px;align-self:flex-end;">+ Add</button>
+  </div>
+</div>
+<datalist id="country-datalist"></datalist>
+
+<div class="stays-section">
+  <div class="sec-hd">Stays</div>
+  <div id="stays-list"><p class="empty-note">No stays added yet.</p></div>
+</div>
+
+<div class="cal-section">
+  <div class="sec-hd">Calendar — 180-day window</div>
+  <div class="cal-legend">
+    <div class="leg-item"><div class="leg-swatch" style="background:#ebebea;border:0.5px solid rgba(0,0,0,0.1);"></div><span>In window (no stay)</span></div>
+    <div class="leg-item"><div class="leg-swatch" style="background:#1D9E75;"></div><span>Stay</span></div>
+    <div class="leg-item"><div class="leg-swatch" style="border:1.5px solid #D85A30;background:none;"></div><span>Reference date</span></div>
+    <div class="leg-item"><div class="leg-swatch" style="border:1.5px solid #639922;background:none;"></div><span>Day rolls off (+1 free)</span></div>
+  </div>
+  <div class="months-wrap" id="cal-months"></div>
+</div>
+
+<div class="forecast-section">
+  <div class="sec-hd">Rollover forecast — when days free up</div>
+  <p class="forecast-intro">Each past stay day exits the 180-day window exactly 180 days after it occurred, freeing up one additional day of allowed stay.</p>
+  <div id="forecast-body"></div>
+</div>
+
+<!-- TRIP SIMULATOR -->
+<div class="sim-section">
+  <div class="sec-hd">Trip simulator</div>
+  <p class="sim-desc">Add one or more planned trips. Each trip is evaluated at its own exit date: the 180-day window is calculated looking back 179 days from that exit date, including all recorded stays and any planned trips up to that point.</p>
+
+  <div class="form-section" style="margin-bottom:0.75rem;">
+    <div class="sec-hd">Add planned trip</div>
+    <div class="form-row">
+      <div class="fgrp"><span class="flbl">Planned entry</span><input type="date" id="sim-new-start"></div>
+      <div class="fgrp"><span class="flbl">Planned exit</span><input type="date" id="sim-new-end"></div>
+      <button onclick="addSimTrip()" style="height:36px;align-self:flex-end;border-color:rgba(127,119,221,0.5);color:#534AB7;">+ Add trip</button>
+    </div>
+  </div>
+
+  <div class="stays-section" style="margin-bottom:0.75rem;">
+    <div class="sec-hd">Planned trips</div>
+    <div id="sim-trips-list"><p class="empty-note">No planned trips yet.</p></div>
+  </div>
+
+  <div id="sim-result" style="display:none;">
+    <div class="sec-hd">Result — days remaining at each exit date</div>
+    <div id="sim-result-table-wrap"></div>
+    <div class="sec-hd" style="margin-top:1.25rem;">Trip calendar</div>
+    <div class="cal-legend" style="margin-bottom:10px;">
+      <div class="leg-item"><div class="leg-swatch" style="background:#ebebea;border:0.5px solid rgba(0,0,0,0.1);"></div><span>In window</span></div>
+      <div class="leg-item"><div class="leg-swatch" style="background:#1D9E75;"></div><span>Recorded stay</span></div>
+      <div class="leg-item"><div class="leg-swatch" style="background:#7F77DD;"></div><span>Planned trip</span></div>
+    </div>
+    <div class="months-wrap" id="sim-cal-months"></div>
+  </div>
+</div>
+
+</div>
+<script>
+const COLORS=['#1D9E75','#378ADD','#D85A30','#D4537E','#BA7517','#085041'];
+const PLAN_COLORS=['#7F77DD','#534AB7','#AFA9EC','#9B94E6','#6B64C4','#3C3489'];
+const MONTHS_EN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['Mo','Tu','We','Th','Fr','Sa','Su'];
+const NUM_PERSONS=8;
+
+function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function parseLocal(str){
+  if(!str)return null;const p=str.split('-').map(Number);
+  if(p.length!==3||p.some(isNaN))return null;
+  const d=new Date(p[0],p[1]-1,p[2]);d.setHours(0,0,0,0);return d;
+}
+function ymd(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function pad2(n){return String(n).padStart(2,'0');}
+function fmtShort(d){return pad2(d.getDate())+'.'+pad2(d.getMonth()+1)+'.'+d.getFullYear();}
+function fmtd(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function fmtFull(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
+function winBounds(cd){const e=new Date(cd);e.setHours(0,0,0,0);const s=new Date(e);s.setDate(s.getDate()-179);return{s,e};}
+function stayLen(st){return Math.round((st.e-st.s)/864e5)+1;}
+
+function isoWeek(date){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const dow=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dow);
+  const y=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil(((d-y)/864e5+1)/7);
+}
+
+let currentPerson=0;
+let persons=Array.from({length:NUM_PERSONS},()=>({name:'',stays:[],nextId:1,checkDate:today0()}));
+function curP(){return persons[currentPerson];}
+function getStays(){return curP().stays;}
+function getCheckDate(){return curP().checkDate;}
+function setCheckDate(d){curP().checkDate=d;}
+
+/* Simulator state — not persisted, session only */
+let simTrips=[];
+let simNextId=1;
+
+function exportPerson(){
+  const p=curP();
+  const name=p.name||('Person '+(currentPerson+1));
+  const data={
+    version:1,
+    person:name,
+    exported:ymd(today0()),
+    checkDate:ymd(p.checkDate),
+    nextId:p.nextId,
+    stays:p.stays.map(s=>({id:s.id,s:ymd(s.s),e:ymd(s.e),country:s.country||''}))
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const safeName=name.replace(/[^a-zA-Z0-9_-]/g,'_');
+  a.href=url;a.download=`visa_days_${safeName}_${ymd(today0())}.json`;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+}
+
+function importPerson(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.stays||!Array.isArray(data.stays))throw new Error('Invalid file format');
+      const p=curP();
+      p.name=data.person||p.name;
+      p.checkDate=parseLocal(data.checkDate)||today0();
+      p.nextId=data.nextId||1;
+      p.stays=data.stays.map(s=>({
+        id:s.id,
+        s:parseLocal(s.s),
+        e:parseLocal(s.e),
+        country:s.country||''
+      })).filter(s=>s.s&&s.e);
+      /* Recalculate nextId to avoid collisions */
+      const maxId=p.stays.reduce((m,s)=>Math.max(m,s.id),0);
+      p.nextId=Math.max(p.nextId,maxId+1);
+      saveData();
+      syncPersonUI();render();
+      const ss=el('save-status');ss.textContent='Imported';ss.style.opacity='1';
+      setTimeout(()=>{ss.style.opacity='0';ss.textContent='Saved';},2500);
+    }catch(err){
+      alert('Could not import — make sure this is a valid exported file.\n\n'+err.message);
+    }
+    input.value=''; /* reset so same file can be re-imported if needed */
+  };
+  reader.readAsText(file);
+}
+
+function saveData(){
+  try{
+    const data=persons.map(p=>({name:p.name,checkDate:ymd(p.checkDate),nextId:p.nextId,stays:p.stays.map(s=>({id:s.id,s:ymd(s.s),e:ymd(s.e),country:s.country||''}))}));
+    localStorage.setItem('schengen_v3',JSON.stringify(data));
+    const ss=el('save-status');ss.style.opacity='1';setTimeout(()=>ss.style.opacity='0',2200);
+  }catch(err){alert('Could not save — open the HTML file locally in a browser.');}
+}
+function loadData(){
+  try{
+    const raw=localStorage.getItem('schengen_v3');if(!raw)return;
+    JSON.parse(raw).forEach((p,i)=>{
+      if(i>=NUM_PERSONS)return;
+      persons[i].name=p.name||'';persons[i].nextId=p.nextId||1;
+      persons[i].checkDate=parseLocal(p.checkDate)||today0();
+      persons[i].stays=(p.stays||[]).map(s=>({id:s.id,s:parseLocal(s.s),e:parseLocal(s.e),country:s.country||''}));
+    });
+  }catch(e){}
+}
+
+function switchPerson(){
+  currentPerson=parseInt(el('person-select').value);
+  simTrips=[];simNextId=1;
+  syncPersonUI();render();
+}
+function syncPersonUI(){const p=curP();el('person-name').value=p.name;el('check-date').value=ymd(p.checkDate);updateSelectLabels();}
+function updatePersonName(){curP().name=el('person-name').value.trim();updateSelectLabels();}
+function updateSelectLabels(){const sel=el('person-select');persons.forEach((p,i)=>{sel.options[i].text=p.name||'Person '+(i+1);});}
+
+/* Days counting in any 180-day window ending at cd */
+function daysInWin(cd,stayArr){
+  const{s,e}=winBounds(cd);let tot=0;
+  for(const st of stayArr){
+    const a=new Date(Math.max(st.s,s)),b=new Date(Math.min(st.e,e));
+    if(a<=b)tot+=Math.round((b-a)/864e5)+1;
+  }return tot;
+}
+function getStayForDay(d,arr){for(let i=0;i<arr.length;i++){const st=arr[i];if(d>=st.s&&d<=st.e)return{st,i};}return null;}
+
+/* Country helpers */
+function getCountries(){
+  const set=new Set();
+  getStays().forEach(s=>{if(s.country&&s.country.trim())set.add(s.country.trim());});
+  return [...set].sort();
+}
+function getActiveCountry(){
+  const sel=el('country-filter');return sel?sel.value.trim():'';
+}
+function getFilteredStays(countryOverride){
+  const c=countryOverride!==undefined?countryOverride:getActiveCountry();
+  if(!c)return getStays();
+  return getStays().filter(s=>s.country&&s.country.trim()===c);
+}
+function updateCountryFilter(){
+  const sel=el('country-filter');if(!sel)return;
+  const cur=sel.value;
+  const countries=getCountries();
+  sel.innerHTML='<option value="">All countries</option>'+countries.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+  /* Datalist for autocomplete */
+  const dl=el('country-datalist');if(dl)dl.innerHTML=countries.map(c=>`<option value="${c}">`).join('');
+}
+
+function getRolloverEvents(){
+  const cd=getCheckDate();const{s:winS}=winBounds(cd);const events={};
+  for(const st of getFilteredStays()){
+    const dayS=new Date(Math.max(st.s,winS));const dayE=new Date(Math.min(st.e,cd));
+    let cur=new Date(dayS);
+    while(cur<=dayE){
+      const rd=new Date(cur);rd.setDate(rd.getDate()+180);const key=ymd(rd);
+      if(!events[key])events[key]={date:new Date(rd),count:0};events[key].count++;cur.setDate(cur.getDate()+1);
+    }
+  }return events;
+}
+function getNextRollover(){
+  const cd=getCheckDate();
+  return Object.values(getRolloverEvents()).filter(e=>e.date>cd).sort((a,b)=>a.date-b.date)[0]||null;
+}
+function buildForecastRanges(){
+  const cd=getCheckDate();
+  const future=Object.values(getRolloverEvents()).filter(e=>e.date>cd).sort((a,b)=>a.date-b.date);
+  if(!future.length)return[];
+  const ranges=[];let rs=future[0].date,re=future[0].date,rd=future[0].count;
+  for(let i=1;i<future.length;i++){
+    if(Math.round((future[i].date-future[i-1].date)/864e5)===1){re=future[i].date;rd+=future[i].count;}
+    else{ranges.push({start:new Date(rs),end:new Date(re),days:rd});rs=future[i].date;re=future[i].date;rd=future[i].count;}
+  }
+  ranges.push({start:new Date(rs),end:new Date(re),days:rd});
+  const usedNow=daysInWin(cd,getFilteredStays());let freed=0;
+  ranges.forEach(r=>{freed+=r.days;r.freeAfter=Math.max(0,Math.min(90,90-(usedNow-freed)));r.freedSoFar=freed;});
+  return ranges;
+}
+
+/* ── Overlap detection ──
+   Returns true if newStay overlaps with any stay in the list (excluding excludeId).
+   Two stays overlap when one starts before the other ends. */
+function hasOverlap(newS,newE,stayArr,excludeId){
+  for(const st of stayArr){
+    if(st.id===excludeId)continue;
+    if(newS<=st.e&&newE>=st.s)return true;
+  }return false;
+}
+function overlapMsg(){return 'The date range overlaps with an existing stay.\nPeriods cannot overlap — please check your dates and try again.';}
+
+function addStay(){
+  const sv=el('new-start').value,ev=el('new-end').value;
+  if(!sv||!ev){alert('Please select both dates');return;}
+  const sd=parseLocal(sv),ed=parseLocal(ev);if(!sd||!ed)return;
+  if(sd>ed){alert('Entry date is after exit date');return;}
+  if(hasOverlap(sd,ed,curP().stays,null)){alert(overlapMsg());return;}
+  const country=(el('new-country').value||'').trim();
+  const p=curP();p.stays.push({id:p.nextId++,s:sd,e:ed,country});render();
+}
+function removeStay(id){curP().stays=curP().stays.filter(x=>x.id!==id);render();}
+function updateStay(id,field,val){
+  const st=curP().stays.find(x=>x.id===id);if(!st)return;
+  if(field==='country'){st.country=val.trim();updateCountryFilter();render();return;}
+  const d=parseLocal(val);if(!d)return;
+  const ns=field==='s'?d:st.s,ne=field==='e'?d:st.e;
+  if(ns>ne)return;
+  if(hasOverlap(ns,ne,curP().stays,id)){alert(overlapMsg());return;}
+  st.s=ns;st.e=ne;render();
+}
+
+/* Simulator CRUD */
+function addSimTrip(){
+  const sv=el('sim-new-start').value,ev=el('sim-new-end').value;
+  if(!sv||!ev){alert('Please select both dates');return;}
+  const sd=parseLocal(sv),ed=parseLocal(ev);if(!sd||!ed)return;
+  if(sd>ed){alert('Entry date is after exit date');return;}
+  if(hasOverlap(sd,ed,simTrips,null)){alert(overlapMsg());return;}
+  simTrips.push({id:simNextId++,s:sd,e:ed});
+  renderSimTrips();runSim();
+}
+function removeSimTrip(id){simTrips=simTrips.filter(x=>x.id!==id);renderSimTrips();runSim();}
+function updateSimTrip(id,field,val){
+  const st=simTrips.find(x=>x.id===id);if(!st)return;
+  const d=parseLocal(val);if(!d)return;
+  const ns=field==='s'?d:st.s,ne=field==='e'?d:st.e;
+  if(ns>ne)return;
+  if(hasOverlap(ns,ne,simTrips,id)){alert(overlapMsg());return;}
+  st.s=ns;st.e=ne;
+  renderSimTrips();runSim();
+}
+
+function renderSimTrips(){
+  const list=el('sim-trips-list');
+  if(!simTrips.length){list.innerHTML='<p class="empty-note">No planned trips yet.</p>';return;}
+  list.innerHTML=simTrips.map((st,i)=>`<div class="sim-trip-row">
+    <div class="dot-plan" style="background:${PLAN_COLORS[i%PLAN_COLORS.length]};width:10px;height:10px;border-radius:50%;flex-shrink:0;"></div>
+    <div class="stay-di">
+      <input type="date" value="${ymd(st.s)}" onchange="updateSimTrip(${st.id},'s',this.value)">
+      <span style="color:#777">—</span>
+      <input type="date" value="${ymd(st.e)}" onchange="updateSimTrip(${st.id},'e',this.value)">
+    </div>
+    <span class="stay-cnt">${stayLen(st)} days</span>
+    <button class="rm" onclick="removeSimTrip(${st.id})">×</button>
+  </div>`).join('');
+}
+
+/*
+  Core sim logic:
+  For each planned trip, the reference date is its EXIT date.
+  We combine all recorded stays + all planned trips UP TO AND INCLUDING this trip
+  and count days used in the 180-day window ending on that exit date.
+*/
+function runSim(){
+  const result=el('sim-result');
+  if(!simTrips.length){result.style.display='none';return;}
+  result.style.display='block';
+
+  /* If multiple countries exist and none selected, prompt */
+  if(getCountries().length>1&&!getActiveCountry()){
+    el('sim-result-table-wrap').innerHTML='<p class="forecast-empty" style="color:#BA7517;padding:12px 0;">⚠ Multiple countries detected — please select a country above to run the simulation.</p>';
+    el('sim-cal-months').innerHTML='';
+    return;
+  }
+
+  const sorted=[...simTrips].sort((a,b)=>a.e-b.e);
+  const allRecorded=getFilteredStays();
+  const cd=getCheckDate();
+
+  /* Find max extension date: extend trip exit day by day until 90 days would be hit */
+  function findMaxStay(trip,recordedStays,allPlanned){
+    let ext=new Date(trip.e);
+    const cap=new Date(trip.e);cap.setDate(cap.getDate()+180);
+    while(ext<cap){
+      const next=new Date(ext);next.setDate(next.getDate()+1);
+      const extTrip={s:trip.s,e:next};
+      const others=allPlanned.filter(t=>t.id!==trip.id&&t.e<=next);
+      if(daysInWin(next,[...recordedStays,...others,extTrip])>90)break;
+      ext=next;
+    }
+    return ext;
+  }
+
+  /* Find earliest start date for the same-duration trip that fits within 90/180 */
+  function findEarliestEntry(trip,recordedStays,allPlanned){
+    const dur=Math.round((trip.e-trip.s)/864e5); /* trip duration in days */
+    let testStart=new Date(trip.s);
+    const cap=new Date(trip.s);cap.setDate(cap.getDate()+365);
+    while(testStart<=cap){
+      const testEnd=new Date(testStart);testEnd.setDate(testEnd.getDate()+dur);
+      const others=allPlanned.filter(t=>t.id!==trip.id&&t.e<=testEnd);
+      const testTrip={s:testStart,e:testEnd};
+      if(daysInWin(testEnd,[...recordedStays,...others,testTrip])<=90)return{start:testStart,end:testEnd};
+      testStart=new Date(testStart);testStart.setDate(testStart.getDate()+1);
+    }
+    return null;
+  }
+
+  /* Build result rows */
+  const rows=sorted.map((trip,idx)=>{
+    const refDate=trip.e;
+    const plannedUpTo=simTrips.filter(t=>t.e<=refDate);
+    const combined=[...allRecorded,...plannedUpTo];
+    const usedAtExit=daysInWin(refDate,combined);
+    const rem=Math.max(0,90-usedAtExit);
+    const tripInWin=daysInWin(refDate,[trip]);
+    const isOver=usedAtExit>90;
+    const isWarn=!isOver&&usedAtExit>75;
+    const remCls=isOver?'sim-td-rem-over':isWarn?'sim-td-rem-warn':'sim-td-rem-ok';
+    const usedCls=isOver?'sim-td-used-over':'sim-td-used-ok';
+    const rowCls=isOver?'row-over':'';
+    const overBy=usedAtExit-90;
+
+    /* Status badge + sub-note */
+    let statusBadge,subNote='';
+    if(isOver){
+      statusBadge=`<span class="sim-over-badge">✗ Not possible — over by ${overBy} day${overBy===1?'':'s'}</span>`;
+      const earliest=findEarliestEntry(trip,allRecorded,simTrips);
+      if(earliest){
+        const daysUntil=Math.round((earliest.start-cd)/864e5);
+        const whenStr=daysUntil<=0?'now':`in ${daysUntil} day${daysUntil===1?'':'s'}`;
+        subNote=`<div style="font-size:11px;color:#A32D2D;margin-top:4px;">Earliest entry: <strong>${fmtShort(earliest.start)}</strong> (${whenStr}) — exit by ${fmtShort(earliest.end)}</div>`;
+      }
+    } else if(isWarn){
+      statusBadge=`<span class="sim-warn-badge">⚠ Possible — caution, ${rem} day${rem===1?'':'s'} left</span>`;
+      const maxDate=findMaxStay(trip,allRecorded,simTrips);
+      const extraDays=Math.round((maxDate-trip.e)/864e5);
+      if(extraDays>0) subNote=`<div style="font-size:11px;color:#555;margin-top:4px;">Could stay ${extraDays} more day${extraDays===1?'':'s'} — until <strong>${fmtShort(maxDate)}</strong></div>`;
+    } else {
+      statusBadge=`<span class="sim-ok-badge">✓ Possible — ${rem} day${rem===1?'':'s'} remaining</span>`;
+      const maxDate=findMaxStay(trip,allRecorded,simTrips);
+      const extraDays=Math.round((maxDate-trip.e)/864e5);
+      if(extraDays>0) subNote=`<div style="font-size:11px;color:#555;margin-top:4px;">Could stay ${extraDays} more day${extraDays===1?'':'s'} — until <strong>${fmtShort(maxDate)}</strong></div>`;
+    }
+
+    const label=`Trip ${idx+1}: ${fmtShort(trip.s)} — ${fmtShort(trip.e)}`;
+    return`<tr class="${rowCls}">
+      <td class="sim-td-trip">${label}</td>
+      <td class="sim-td-days">${tripInWin} days</td>
+      <td class="${usedCls}">${usedAtExit} / 90</td>
+      <td class="${remCls}">${rem} days</td>
+      <td>${statusBadge}${subNote}</td>
+    </tr>`;
+  }).join('');
+
+  el('sim-result-table-wrap').innerHTML=`<table class="sim-result-table">
+    <thead><tr><th>Planned trip</th><th>Days in window</th><th>Used at exit</th><th>Remaining</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+
+  /* Calendar */
+  const latestExit=new Date(Math.max(...simTrips.map(t=>t.e)));
+  const{s:winS,e:winE}=winBounds(cd);
+  const calEnd=latestExit>winE?latestExit:winE;
+  const calStart=new Date(winS);
+  const rollDates=getRolloverEvents();
+  const months=monthsInRange(calStart,calEnd);
+  const wrap=el('sim-cal-months');wrap.innerHTML='';
+  months.forEach(m=>wrap.appendChild(buildMonth(m,winS,winE,rollDates,null,allRecorded,simTrips)));
+}
+
+/* ── Calendar builder ── */
+function buildMonth(m,winS,winE,rollDates,cd,stayArr,planArr){
+  const year=m.getFullYear(),month=m.getMonth();
+  const container=mk('div','');container.style.minWidth='0';
+  const hdr=mk('div','');
+  hdr.style.cssText='font-size:13px;font-weight:500;color:#1a1a1a;margin-bottom:6px;text-align:center;';
+  hdr.textContent=MONTHS_EN[month]+' '+year;container.appendChild(hdr);
+  const grid=mk('div','cal-grid');
+  const cwh=mk('div','cal-cw-hdr');cwh.textContent='CW';grid.appendChild(cwh);
+  DOW.forEach(d=>{const c=mk('div','cal-dow');c.textContent=d;grid.appendChild(c);});
+  const firstDay=new Date(year,month,1);
+  const startDow=(firstDay.getDay()+6)%7;
+  const firstMon=new Date(firstDay);firstMon.setDate(firstDay.getDate()-startDow);
+  grid.appendChild(cwCell(firstMon));
+  for(let i=0;i<startDow;i++)grid.appendChild(mk('div','cal-day empty'));
+  const dim=new Date(year,month+1,0).getDate();
+  for(let d=1;d<=dim;d++){
+    const date=new Date(year,month,d);date.setHours(0,0,0,0);
+    const dow=(date.getDay()+6)%7;
+    if(dow===0&&d>1)grid.appendChild(cwCell(date));
+    const cell=mk('div','cal-day');
+    const inWin=date>=winS&&date<=winE;
+    const isCheck=cd&&date.getTime()===cd.getTime();
+    const match=stayArr?getStayForDay(date,stayArr):null;
+    const planMatch=planArr?getStayForDay(date,planArr):null;
+    const rollKey=ymd(date),isRollover=rollDates&&!!rollDates[rollKey];
+    if(!inWin)cell.classList.add('out-win');else cell.classList.add('in-win');
+    if(match){cell.classList.add('stay-day');cell.style.background=COLORS[match.i%COLORS.length];}
+    else if(planMatch){cell.classList.add('plan-day');cell.style.background=PLAN_COLORS[planMatch.i%PLAN_COLORS.length];}
+    if(isCheck)cell.style.boxShadow='inset 0 0 0 2px #D85A30';
+    if(isRollover&&!match&&!planMatch)cell.classList.add('rollover-day');
+    const tip=mk('div','cal-tip');let txt=fmtFull(date);
+    if(match)txt+=` · Stay ${match.i+1} (${stayLen(match.st)} days)`;
+    if(planMatch)txt+=` · Planned trip ${planMatch.i+1} (${stayLen(planMatch.st)} days)`;
+    if(isCheck)txt+=' · Today (reference date)';
+    if(isRollover&&rollDates)txt+=` · +${rollDates[rollKey].count} day(s) free up`;
+    tip.textContent=txt;cell.appendChild(tip);
+    const num=mk('div','cal-day-num');num.textContent=d;cell.appendChild(num);
+    grid.appendChild(cell);
+  }
+  container.appendChild(grid);return container;
+}
+
+function cwCell(mondayDate){
+  const label='CW'+pad2(isoWeek(mondayDate));
+  const c=mk('div','cal-cw');
+  const txt=document.createTextNode(label);
+  c.appendChild(txt);
+  const tip=mk('div','cw-tip');tip.textContent=label;
+  c.appendChild(tip);
+  return c;
+}
+function monthsInRange(s,e){
+  const months=[];let cur=new Date(s);cur.setDate(1);const last=new Date(e);last.setDate(1);
+  while(cur<=last){months.push(new Date(cur));cur.setMonth(cur.getMonth()+1);}return months;
+}
+
+function render(){
+  updateCountryFilter();
+  const multiCountry=getCountries().length>1;
+  const activeCountry=getActiveCountry();
+  const noSelection=multiCountry&&!activeCountry;
+  el('metrics-wrap').style.display=noSelection?'none':'block';
+  el('metrics-placeholder').style.display=noSelection?'block':'none';
+  if(noSelection){renderList();renderCalendar();runSim();return;}
+
+  const cd=getCheckDate();const filteredStays=getFilteredStays();const used=daysInWin(cd,filteredStays);
+  const rem=Math.max(0,90-used),pct=Math.min(100,(used/90)*100);
+  const cls=used>90?'c-over':used>75?'c-warn':'c-ok';
+  el('days-used').textContent=used;el('days-used').className='m-val '+cls;
+  el('days-rem').textContent=rem;el('days-rem').className='m-val '+cls;
+  const sv=el('status-val');
+  if(used>90){sv.textContent='Exceeded';sv.className='m-val c-over';}
+  else if(used>75){sv.textContent='Warning';sv.className='m-val c-warn';}
+  else{sv.textContent='OK';sv.className='m-val c-ok';}
+  el('prog-fill').style.width=pct+'%';
+  el('prog-fill').style.background=used>90?'#A32D2D':used>75?'#BA7517':'#1D9E75';
+  el('over-banner').style.display=used>90?'block':'none';
+  el('warn-banner').style.display=(used>75&&used<=90)?'block':'none';
+  const ri=el('rollover-info');const next=getNextRollover();
+  if(next&&used>0){
+    const du=Math.round((next.date-cd)/864e5);
+    const uw=du===0?'today':du===1?'tomorrow':`in ${du} days`;
+    ri.innerHTML=`<span style="color:#3B6D11">+${next.count} day${next.count===1?'':'s'} free up ${uw}</span><br><span style="color:#777">${fmtFull(next.date)} — past stay exits window</span>`;
+    ri.style.display='block';
+  }else ri.style.display='none';
+  renderTL();renderList();renderCalendar();renderForecast();runSim();
+}
+
+function renderTL(){
+  const bar=el('tl-bar');bar.innerHTML='';
+  const cd=getCheckDate();const{s,e}=winBounds(cd);const span=e-s;
+  const pct=d=>Math.max(0,Math.min(100,((d-s)/span)*100));
+  let mc=new Date(s);mc.setDate(1);mc.setMonth(mc.getMonth()+1);
+  while(mc<=e){
+    const p=pct(mc);
+    const tick=mk('div','month-tick');tick.style.left=p+'%';
+    const lbl=mk('div','month-lbl');lbl.style.left=p+'%';lbl.textContent=mc.toLocaleDateString('en-GB',{month:'short'});
+    bar.appendChild(tick);bar.appendChild(lbl);mc=new Date(mc);mc.setMonth(mc.getMonth()+1);
+  }
+  const ckp=pct(cd);
+  const ckLine=mk('div','ck-line');ckLine.style.left=ckp+'%';
+  const ckLbl=mk('div','ck-lbl');ckLbl.style.left=ckp+'%';ckLbl.textContent='today';
+  bar.appendChild(ckLbl);bar.appendChild(ckLine);
+  getFilteredStays().forEach((st,i)=>{
+    const color=COLORS[i%COLORS.length];
+    const ss=new Date(Math.max(st.s,s)),se=new Date(Math.min(st.e,e));if(ss>se)return;
+    const lp=pct(ss),rp=pct(new Date(se.getTime()+864e5)),wp=Math.max(rp-lp,0.4);
+    const seg=mk('div','seg');seg.style.cssText=`left:${lp}%;width:${wp}%;background:${color}`;seg.dataset.id=st.id;seg.dataset.type='move';
+    const hl=mk('div','hndl hndl-l');hl.dataset.id=st.id;hl.dataset.type='left';
+    const hr=mk('div','hndl hndl-r');hr.dataset.id=st.id;hr.dataset.type='right';
+    const inner=mk('div','seg-inner');inner.dataset.id=st.id;inner.dataset.type='move';
+    const lbl=mk('div','seg-lbl');lbl.textContent=stayLen(st)+'d';lbl.dataset.id=st.id;lbl.dataset.type='move';
+    inner.appendChild(lbl);seg.appendChild(hl);seg.appendChild(inner);seg.appendChild(hr);bar.appendChild(seg);
+  });
+  el('tl-s').textContent=fmtd(s);el('tl-m').textContent=fmtd(new Date(s.getTime()+span/2));el('tl-e').textContent=fmtd(e);
+}
+
+function renderList(){
+  const list=el('stays-list'),stays=getStays();
+  if(!stays.length){list.innerHTML='<p class="empty-note">No stays added yet.</p>';return;}
+  list.innerHTML=stays.map((st,i)=>`<div class="stay-row">
+    <div class="dot" style="background:${COLORS[i%COLORS.length]}"></div>
+    <div class="stay-di">
+      <input type="date" value="${ymd(st.s)}" onchange="updateStay(${st.id},'s',this.value)">
+      <span style="color:#777">—</span>
+      <input type="date" value="${ymd(st.e)}" onchange="updateStay(${st.id},'e',this.value)">
+    </div>
+    <input class="stay-country" type="text" value="${st.country||''}" placeholder="Country" list="country-datalist"
+      onchange="updateStay(${st.id},'country',this.value)" autocomplete="off">
+    <span class="stay-cnt">${stayLen(st)} days</span>
+    <button class="rm" onclick="removeStay(${st.id})">×</button>
+  </div>`).join('');
+}
+
+function renderCalendar(){
+  const cd=getCheckDate();const{s:winS,e:winE}=winBounds(cd);
+  const rollDates=getRolloverEvents();
+  const wrap=el('cal-months');wrap.innerHTML='';
+  monthsInRange(winS,winE).forEach(m=>wrap.appendChild(buildMonth(m,winS,winE,rollDates,cd,getFilteredStays(),null)));
+}
+
+function renderForecast(){
+  const cd=getCheckDate();const fb=el('forecast-body');
+  /* If multiple countries exist and none is selected, prompt the user */
+  if(getCountries().length>1&&!getActiveCountry()){
+    fb.innerHTML='<p class="forecast-empty" style="color:#BA7517;">⚠ Multiple countries detected — please select a country above to view the rollover forecast.</p>';
+    return;
+  }
+  const ranges=buildForecastRanges();
+  if(!ranges.length){fb.innerHTML='<p class="forecast-empty">No rollover events — no past stays within current 180-day window.</p>';return;}
+  const rows=ranges.map(r=>{
+    const same=ymd(r.start)===ymd(r.end);
+    const rStr=same?fmtShort(r.start):fmtShort(r.start)+' &ndash; '+fmtShort(r.end);
+    const du=Math.round((r.start-cd)/864e5);
+    const uw=du===0?'today':du===1?'tomorrow':`in ${du} days`;
+    return`<tr><td class="fc-range">${rStr}</td><td><span class="fc-badge">+${r.days} day${r.days===1?'':'s'}</span></td><td class="fc-running">${r.freeAfter} / 90 available</td><td class="fc-note">${uw}</td></tr>`;
+  }).join('');
+  fb.innerHTML=`<table class="forecast-table"><thead><tr><th>Period when days are freed</th><th>Days freed</th><th>Available after</th><th>Starts</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* Drag */
+let dragState=null;
+const tlBar=el('tl-bar');
+tlBar.addEventListener('mousedown',startDrag);
+tlBar.addEventListener('touchstart',e=>{e.preventDefault();startDrag(e.touches[0]);},{passive:false});
+function startDrag(e){
+  const t=e.target,id=parseInt(t.dataset.id),type=t.dataset.type;if(!id||!type)return;
+  const st=curP().stays.find(x=>x.id===id);if(!st)return;
+  dragState={id,type,startX:e.clientX,origS:new Date(st.s),origE:new Date(st.e),rect:tlBar.getBoundingClientRect()};
+}
+document.addEventListener('mousemove',onDrag);
+document.addEventListener('touchmove',e=>{if(dragState){e.preventDefault();onDrag(e.touches[0]);}},{passive:false});
+function onDrag(e){
+  if(!dragState)return;
+  const delta=Math.round((e.clientX-dragState.startX)/(dragState.rect.width/179));
+  const st=curP().stays.find(x=>x.id===dragState.id);if(!st)return;
+  if(dragState.type==='move'){
+    const ns=new Date(dragState.origS);ns.setDate(ns.getDate()+delta);
+    const ne=new Date(dragState.origE);ne.setDate(ne.getDate()+delta);st.s=ns;st.e=ne;
+  }else if(dragState.type==='left'){const ns=new Date(dragState.origS);ns.setDate(ns.getDate()+delta);if(ns<=st.e)st.s=ns;}
+  else if(dragState.type==='right'){const ne=new Date(dragState.origE);ne.setDate(ne.getDate()+delta);if(ne>=st.s)st.e=ne;}
+  render();
+}
+document.addEventListener('mouseup',()=>dragState=null);
+document.addEventListener('touchend',()=>dragState=null);
+el('check-date').addEventListener('change',function(){const d=parseLocal(this.value);if(d){setCheckDate(d);render();}});
+function el(id){return document.getElementById(id);}
+function mk(tag,cls){const e=document.createElement(tag);if(cls)e.className=cls;return e;}
+loadData();syncPersonUI();render();
+</script>
+</body>
+</html>

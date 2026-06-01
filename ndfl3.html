@@ -1,0 +1,2449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3-НДФЛ · Калькулятор</title>
+<meta name="theme-color" content="#0F6E56">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="3-НДФЛ">
+<link rel="manifest" id="pwa-manifest">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+/* ── ДИЗАЙН-ТОКЕНЫ (точно как в календарях) */
+:root {
+  --bg:      #ffffff;
+  --bg2:     #f5f4f2;
+  --bg3:     #eceae6;
+  --border:  rgba(0,0,0,0.10);
+  --border2: rgba(0,0,0,0.15);
+  --text:    #1a1a1a;
+  --text2:   #6b6b6b;
+  --text3:   #aaa;
+  --r:       8px;
+  --r-sm:    6px;
+  --green:   #0F6E56;
+  --green-l: #e4f2ed;
+  --orange:  #BA7517;
+  --orange-l:#fef4e0;
+  --red:     #A32D2D;
+  --red-l:   #fdeaea;
+  --blue:    #1a5a8c;
+  --blue-l:  #e6f0f8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,sans-serif;
+     font-size:14px;color:var(--text);background:var(--bg);line-height:1.5;}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px;}
+
+/* ЗАГОЛОВОК */
+.app-head{display:flex;align-items:baseline;justify-content:space-between;
+          flex-wrap:wrap;gap:6px;margin-bottom:4px;}
+.app-title{font-size:22px;font-weight:600;letter-spacing:-0.3px;}
+.app-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:100px;
+           background:var(--orange-l);color:var(--orange);}
+.app-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+
+/* МЕТРИКИ — как metric в шенгенском калькуляторе */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.metric{background:var(--bg2);border-radius:var(--r);padding:14px 12px;}
+.m-lbl{font-size:11px;color:var(--text2);text-transform:uppercase;
+       letter-spacing:.06em;margin-bottom:6px;}
+.m-val{font-size:30px;font-weight:500;line-height:1;}
+.m-sub{font-size:12px;margin-top:4px;color:var(--text2);}
+.c-ok  {color:var(--green);}
+.c-warn{color:var(--orange);}
+.c-over{color:var(--red);}
+
+/* ПРОГРЕСС-БАР — как полоска дней в калькуляторе 90/180 */
+.prog-wrap{margin-bottom:18px;}
+.prog-bg{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;
+         border:.5px solid var(--border);}
+.prog-fill{height:100%;border-radius:3px;transition:width .3s,background .3s;min-width:2px;}
+.prog-labels{display:flex;justify-content:space-between;
+             margin-top:4px;font-size:11px;color:var(--text2);}
+
+/* ТАБЫ */
+.tabs{display:flex;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--border);}
+.tab-btn{padding:9px 16px;font-size:13px;font-weight:500;color:var(--text2);
+         border:none;background:transparent;cursor:pointer;
+         border-bottom:2px solid transparent;margin-bottom:-1px;
+         transition:color .15s,border-color .15s;font-family:inherit;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--text);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* СЕКЦИЯ-ХЕДЕР — 11px uppercase как в calendar */
+.sec-hd{font-size:11px;font-weight:500;color:var(--text2);
+        text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+
+/* КАРТОЧКА-ФОРМА */
+.card{background:var(--bg2);border-radius:var(--r);padding:16px;margin-bottom:16px;}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:90px;}
+.fg label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;}
+input,select{height:36px;border:.5px solid var(--border2);border-radius:var(--r-sm);
+             padding:0 10px;font-size:13px;background:var(--bg);
+             color:var(--text);font-family:inherit;width:100%;}
+input:focus,select:focus{outline:none;border-color:rgba(0,0,0,.35);}
+
+/* КНОПКИ */
+.btn{height:36px;padding:0 16px;border-radius:var(--r-sm);border:none;
+     cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;
+     transition:opacity .15s;white-space:nowrap;
+     display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:#1a1a1a;color:#fff;}
+.btn-ghost{background:var(--bg3);color:var(--text);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-red{background:var(--red);color:#fff;}
+
+/* СПИСОК */
+.list-wrap{margin-bottom:16px;}
+.li{display:flex;align-items:center;gap:10px;padding:10px 12px;
+    border-radius:var(--r-sm);border:.5px solid var(--border);
+    margin-bottom:6px;background:var(--bg);font-size:13px;transition:background .1s;}
+.li:hover{background:var(--bg2);}
+.li-date{color:var(--text2);min-width:72px;font-size:12px;flex-shrink:0;}
+.li-main{flex:1;min-width:0;}
+.li-amt{font-weight:500;text-align:right;min-width:120px;flex-shrink:0;line-height:1.4;}
+.li-amt small{font-weight:400;color:var(--text2);font-size:11px;display:block;}
+.li-del{width:24px;height:24px;border-radius:50%;border:none;background:transparent;
+        color:var(--text3);cursor:pointer;font-size:18px;
+        display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        transition:background .1s,color .1s;}
+.li-del:hover{background:var(--red-l);color:var(--red);}
+
+/* ПИЛЮЛИ */
+.pill{display:inline-flex;align-items:center;font-size:11px;font-weight:500;
+      padding:2px 8px;border-radius:100px;margin-right:4px;}
+.pill-green {background:var(--green-l);color:var(--green);}
+.pill-orange{background:var(--orange-l);color:var(--orange);}
+.pill-blue  {background:var(--blue-l);color:var(--blue);}
+.pill-gray  {background:var(--bg3);color:var(--text2);}
+.pill-red   {background:var(--red-l);color:var(--red);}
+
+/* БАННЕРЫ */
+.banner{border-radius:var(--r-sm);padding:10px 14px;font-size:13px;
+        margin-bottom:14px;line-height:1.5;}
+.banner-green {background:var(--green-l);color:var(--green);}
+.banner-orange{background:var(--orange-l);color:var(--orange);}
+.banner-red   {background:var(--red-l);color:var(--red);}
+.banner-blue  {background:var(--blue-l);color:var(--blue);}
+
+/* СТАТУС КУРСА */
+.rate-st{font-size:11px;margin-top:4px;min-height:16px;}
+.rate-ok {color:var(--green);}
+.rate-err{color:var(--red);}
+
+/* КАЛЕНДАРЬ — точно как в шенгенском калькуляторе */
+.months-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));
+             gap:14px;margin-bottom:16px;}
+.month-card{background:var(--bg2);border-radius:var(--r);padding:12px;}
+.month-title{font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-dow{font-size:10px;color:var(--text2);text-align:center;
+         padding:2px 0;font-weight:500;}
+.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;
+         justify-content:center;border-radius:var(--r-sm);font-size:11px;
+         color:var(--text);cursor:default;transition:background .1s;}
+.cal-day.empty{visibility:hidden;}
+.cal-day.has-salary{background:var(--green);color:#fff;font-weight:500;cursor:pointer;}
+.cal-day.has-bonus{background:var(--blue);color:#fff;font-weight:500;cursor:pointer;}
+.cal-day.has-service{background:var(--bg3);color:var(--text2);cursor:pointer;}
+.cal-day.cal-mixed::after{content:'';position:absolute;bottom:2px;right:2px;width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,.3);}
+.cal-day:not(.empty):not(.has-salary):not(.has-bonus):not(.has-service):hover{background:var(--bg3);}
+.cal-day.has-salary:hover .cal-tip,.cal-day.has-bonus:hover .cal-tip,.cal-day.has-service:hover .cal-tip{display:block;}
+/* Тултип — точно как в шенгенском календаре */
+.cal-tip{position:absolute;bottom:calc(100% + 4px);left:50%;
+         transform:translateX(-50%);background:#fff;
+         border:.5px solid rgba(0,0,0,.15);border-radius:var(--r-sm);
+         padding:4px 8px;font-size:11px;white-space:nowrap;color:var(--text);
+         z-index:99;display:none;pointer-events:none;
+         box-shadow:0 2px 8px rgba(0,0,0,.08);}
+
+/* РАСЧЁТ НАЛОГА */
+.tax-row{display:flex;justify-content:space-between;align-items:baseline;
+         padding:8px 0;border-bottom:.5px solid rgba(0,0,0,.06);font-size:13px;}
+.tax-row:last-child{border-bottom:none;}
+.tax-row.subtotal{background:var(--bg2);padding:8px 10px;
+                  border-radius:var(--r-sm);margin:4px 0;border:none;}
+.tax-row.total{font-weight:600;font-size:16px;padding-top:14px;}
+.tax-lbl{color:var(--text2);}
+.tax-val{font-weight:500;}
+
+/* PDF МОДАЛЬНОЕ ОКНО */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);
+          z-index:200;align-items:center;justify-content:center;padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--bg);border-radius:var(--r);width:100%;max-width:680px;
+       max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
+       box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;
+            padding:16px 20px;border-bottom:.5px solid var(--border);}
+.modal-title{font-size:15px;font-weight:600;}
+.modal-close{width:28px;height:28px;border-radius:50%;border:none;
+             background:var(--bg3);color:var(--text2);cursor:pointer;
+             font-size:18px;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{background:var(--red-l);color:var(--red);}
+.modal-body{overflow-y:auto;padding:16px 20px;flex:1;}
+.modal-foot{padding:12px 20px;border-top:.5px solid var(--border);
+            display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+/* Строка-кандидат в модалке */
+.cand-row{display:flex;align-items:center;gap:10px;padding:8px 10px;
+          border-radius:var(--r-sm);border:.5px solid var(--border);
+          margin-bottom:6px;font-size:13px;background:var(--bg);}
+.cand-row:hover{background:var(--bg2);}
+.cand-check{width:16px;height:16px;flex-shrink:0;cursor:pointer;}
+.cand-date{width:90px;flex-shrink:0;}
+.cand-amt{width:100px;flex-shrink:0;font-weight:500;}
+.cand-type{width:120px;flex-shrink:0;}
+.cand-desc{flex:1;color:var(--text2);font-size:12px;white-space:nowrap;
+           overflow:hidden;text-overflow:ellipsis;}
+input.cand-date,input.cand-amt,select.cand-type{
+  height:28px;padding:0 6px;font-size:12px;border-radius:4px;
+  border:.5px solid var(--border2);background:var(--bg);
+  color:var(--text);font-family:inherit;}
+/* PDF карточка в табе Доходы */
+.pdf-card{background:var(--blue-l);border:.5px solid rgba(26,90,140,.2);
+          border-radius:var(--r);padding:14px 16px;margin-bottom:16px;}
+.pdf-card-title{font-size:12px;font-weight:600;color:var(--blue);
+                text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.pdf-card-body{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.pdf-status{font-size:12px;color:var(--text2);}
+
+/* УТИЛИТЫ */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.receipt-thumb{display:inline-block;height:44px;max-width:60px;border-radius:6px;
+               cursor:pointer;vertical-align:middle;object-fit:cover;
+               border:.5px solid var(--border);margin:0 4px;}
+.receipt-pdf{width:44px;height:44px;display:inline-flex;align-items:center;
+             justify-content:center;background:var(--blue-l);color:var(--blue);
+             font-size:10px;font-weight:700;border-radius:6px;cursor:pointer;
+             border:.5px solid rgba(26,90,140,.2);}
+.empty-st{text-align:center;padding:32px 16px;color:var(--text2);
+          font-size:13px;background:var(--bg2);border-radius:var(--r);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+       background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;
+       font-size:13px;opacity:0;transition:opacity .2s;
+       pointer-events:none;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;}
+
+@media(max-width:580px){
+  .metrics{grid-template-columns:repeat(2,1fr);}
+  .form-row{flex-direction:column;}
+  .fg{min-width:0;}
+  .m-val{font-size:22px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="app-head">
+    <div class="app-title">3-НДФЛ &middot; Калькулятор</div>
+    <span class="app-badge">В разработке</span>
+  </div>
+  <div class="app-sub">Учёт доходов, командировок и расчёт налога для сотрудников на зарубежных командировках</div>
+
+  <!-- МЕТРИКИ -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="m-lbl">Доходы &#8381;</div>
+      <div class="m-val" id="m-income">&mdash;</div>
+      <div class="m-sub" id="m-income-cnt">нет записей</div>
+    </div>
+    <div class="metric">
+      <div class="m-lbl">Вычеты &#8381;</div>
+      <div class="m-val c-warn" id="m-deduct">&mdash;</div>
+      <div class="m-sub" id="m-deduct-sub">суточные + расходы</div>
+    </div>
+    <div class="metric">
+      <div class="m-lbl">НДФЛ к уплате</div>
+      <div class="m-val" id="m-tax">&mdash;</div>
+      <div class="m-sub" id="m-tax-sub">расчётный</div>
+    </div>
+  </div>
+
+  <!-- ПРОГРЕСС-БАР -->
+  <div class="prog-wrap">
+    <div class="prog-bg">
+      <div class="prog-fill" id="prog-fill" style="width:0%;background:var(--green)"></div>
+    </div>
+    <div class="prog-labels">
+      <span>0 &#8381; &middot; 13%</span>
+      <span id="prog-center">налоговая база</span>
+      <span>5 000 000 &#8381; &middot; 18%</span>
+    </div>
+  </div>
+
+  <!-- ТАБЫ -->
+  <div class="tabs">
+    <button class="tab-btn" data-tab="incomes" onclick="switchTab('incomes',this)" style="padding:9px 16px">Доходы</button>
+    <button class="tab-btn" data-tab="trips"   onclick="switchTab('trips',this)"   style="padding:9px 16px">Зарубежные&nbsp;ком-ки</button>
+    <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses',this)" style="padding:9px 16px">Расходы</button>
+    <button class="tab-btn" data-tab="tax"      onclick="switchTab('tax',this)"      style="padding:9px 16px">Расчёт налога</button>
+    <button class="tab-btn" data-tab="commissions" onclick="switchTab('commissions',this)" style="padding:9px 16px">&#128176; Комиссии</button>
+  </div>
+
+  <!-- ТАБ: ДОХОДЫ -->
+  <div class="tab-panel active" id="tab-incomes">
+    <!-- PDF импорт -->
+    <div class="pdf-card">
+      <div class="pdf-card-title">&#128196; Импорт из банковской выписки</div>
+      <div class="pdf-card-body" style="flex-direction:column;gap:8px;align-items:flex-start">
+        <div style="display:flex;gap:12px;align-items:center">
+          <button class="btn btn-ghost" style="min-width:130px;justify-content:flex-start;flex-shrink:0"
+                  onclick="ge('pdf-file-current').click()">&#128451; Current</button>
+          <input type="file" id="pdf-file-current" accept=".pdf" style="display:none"
+                 onchange="handlePdfUpload(event,'current')">
+          <span class="pdf-status" id="pdf-status-current">Freedom Bank · текущий счёт (PAYROLL, AUSLAGE, AVIS…)</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button class="btn btn-ghost" style="min-width:130px;justify-content:flex-start;flex-shrink:0"
+                  onclick="ge('pdf-file-deposit').click()">&#128181; Deposite</button>
+          <input type="file" id="pdf-file-deposit" accept=".pdf" style="display:none"
+                 onchange="handlePdfUpload(event,'deposit')">
+          <span class="pdf-status" id="pdf-status-deposit">Freedom Bank · вклад (проценты по вкладу)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-hd">Добавить доход вручную</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="fg" style="max-width:130px">
+          <label>Дата</label>
+          <input type="date" id="i-date">
+        </div>
+        <div class="fg" style="max-width:90px">
+          <label>Валюта</label>
+          <select id="i-currency" onchange="onCurrencyChange()">
+            <option>EUR</option><option>USD</option><option>AED</option>
+            <option>KZT</option><option>GBP</option><option>CNY</option>
+            <option>SGD</option><option>RUB</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Сумма</label>
+          <input type="number" id="i-amount" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="fg" style="max-width:180px">
+          <label>Тип</label>
+          <select id="i-type">
+            <option value="salary">Зарплата</option>
+            <option value="bonus">Ауслёзунг</option>
+            <option value="service">Служебные расходы</option>
+            <option value="interest">Проценты по вкладу</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div class="fg" style="max-width:150px">
+          <label>Курс ЦБ РФ</label>
+          <input type="number" id="i-rate" placeholder="авто" step="0.0001" min="0">
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:4px">
+          <button class="btn btn-ghost" onclick="fetchRate()" id="fetch-btn">&#8644; Загрузить курс</button>
+          <div class="rate-st" id="rate-status"></div>
+        </div>
+        <div class="fg">
+          <label>Описание (необязательно)</label>
+          <input type="text" id="i-desc" placeholder="">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" onclick="addIncome()">+ Добавить</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-hd" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Записи о доходах</span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px"
+              onclick="removeDuplicateIncomes()" title="Удалить записи с одинаковой датой, суммой и валютой">
+        &#9932; Удалить дубли
+      </button>
+    </div>
+    <div class="list-wrap" id="income-list"></div>
+
+    <div class="sec-hd" style="margin-top:24px">Календарь поступлений</div>
+    <div id="income-calendar" class="months-wrap"></div>
+  </div>
+
+  <!-- ТАБ: КОМАНДИРОВКИ -->
+  <div class="tab-panel" id="tab-trips">
+    <div class="banner banner-blue">
+      Суточные <strong>2&nbsp;500&nbsp;&#8381;/день</strong> при <strong>зарубежных</strong> командировках
+      освобождены от НДФЛ (ст.&nbsp;217 п.&nbsp;3 НК РФ).
+      Каждый день вычитается из налоговой базы — <strong>включая выходные и праздники</strong>.
+      Командировки по России в этом инструменте не учитываются.
+    </div>
+    <div class="sec-hd">Добавить зарубежную командировку</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="fg" style="max-width:130px">
+          <label>Начало</label>
+          <input type="date" id="t-start">
+        </div>
+        <div class="fg" style="max-width:130px">
+          <label>Конец</label>
+          <input type="date" id="t-end">
+        </div>
+        <div class="fg">
+          <label>Страна / описание</label>
+          <input type="text" id="t-desc" placeholder="например: Германия">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" onclick="addTrip()">+ Добавить</button>
+        </div>
+      </div>
+    </div>
+    <div class="sec-hd">Зарубежные командировки</div>
+    <div class="list-wrap" id="trip-list"></div>
+  </div>
+
+  <!-- ТАБ: РАСХОДЫ -->
+  <div class="tab-panel" id="tab-expenses">
+    <div class="banner banner-blue">
+      Служебные расходы (страховка, рабочая одежда, инструменты и т.д.) компенсируются
+      работодателем и <strong>не входят в налоговую базу</strong>.
+    </div>
+    <div class="sec-hd">Добавить расход</div>
+    <div class="card">
+      <!-- datalist валют -->
+      <datalist id="currency-list">
+        <option value="RUB"><option value="EUR"><option value="USD">
+        <option value="AED"><option value="KZT"><option value="GBP">
+        <option value="CNY"><option value="KRW"><option value="TRY">
+        <option value="INR"><option value="VND"><option value="THB">
+        <option value="SGD"><option value="JPY"><option value="IDR">
+        <option value="PHP"><option value="MYR"><option value="EGP">
+        <option value="SAR"><option value="QAR"><option value="KWD">
+        <option value="BHD"><option value="OMR"><option value="ZAR">
+        <option value="CHF"><option value="NZD"><option value="AUD">
+        <option value="CAD">
+      </datalist>
+      <div class="form-row">
+        <div class="fg" style="max-width:130px">
+          <label>Дата</label>
+          <input type="date" id="e-date" onchange="autoFetchExpenseRate()">
+        </div>
+        <div class="fg" style="max-width:90px">
+          <label>Валюта</label>
+          <input list="currency-list" id="e-currency" value="EUR"
+                 style="height:36px;padding:0 8px;border-radius:var(--r-sm);border:.5px solid var(--border2);
+                        background:var(--bg);color:var(--text);font-family:inherit;font-size:14px;width:100%"
+                 oninput="autoFetchExpenseRate()" autocomplete="off" placeholder="EUR">
+        </div>
+        <div class="fg">
+          <label>Сумма</label>
+          <input type="number" id="e-amount" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="fg" style="max-width:155px">
+          <label>Курс ЦБ РФ <span id="e-rate-status" style="font-size:10px;color:var(--text2)"></span></label>
+          <div style="display:flex;gap:4px">
+            <input type="number" id="e-rate" placeholder="авто" step="0.0001" min="0" style="flex:1">
+            <button class="btn btn-ghost btn-sm" onclick="fetchExpenseRate()" title="Загрузить курс ЦБ" style="padding:0 8px">&#8635;</button>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Описание</label>
+          <input type="text" id="e-desc" placeholder="напр. страховка">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <div class="fg" style="max-width:260px">
+          <label>Привязать к командировке (необязательно)</label>
+          <select id="e-trip" style="height:36px;border:.5px solid var(--border2);border-radius:var(--r-sm);padding:0 10px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;width:100%">
+            <option value="">— без привязки —</option>
+          </select>
+        </div>
+      </div>
+      <!-- Чек / скан -->
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+          &#128247; Прикрепить чек
+          <input type="file" id="e-receipt" accept="image/*,application/pdf"
+                 style="display:none" onchange="previewReceipt(event)">
+        </label>
+        <span id="e-receipt-name" style="font-size:12px;color:var(--text2)"></span>
+        <div id="e-receipt-preview" style="margin-top:6px"></div>
+        <div style="margin-left:auto">
+          <button class="btn btn-primary" onclick="addExpense()">+ Добавить</button>
+        </div>
+      </div>
+    </div>
+    <div class="sec-hd">Расходы</div>
+    <div class="list-wrap" id="expense-list"></div>
+  </div>
+
+  <!-- ТАБ: РАСЧЁТ НДФЛ -->
+  <div class="tab-panel" id="tab-tax">
+    <div id="tax-breakdown"></div>
+
+    <div class="sec-hd" style="margin-top:22px">Налог уплаченный работодателем</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="fg">
+          <label>Уплачено работодателем (HSPB / &#8381;)</label>
+          <input type="number" id="hspb" placeholder="0" step="1" min="0" oninput="S.hspb=parseFloat(this.value)||0;save();renderTax()">
+        </div>
+        <div class="fg" style="max-width:320px">
+          <label style="opacity:0">x</label>
+          <div style="font-size:12px;color:var(--text2);padding:8px 0;line-height:1.5">
+            Сумма, которую работодатель (Корея) уже удержал и перечислил &mdash; вычитается из итогового НДФЛ
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-hd">Экспорт и управление данными</div>
+    <div class="banner banner-blue" style="margin-bottom:12px;font-size:12px">
+      <strong>ZIP-архив</strong> содержит все данные + чеки. Используйте для переноса
+      между компьютерами. Кладите архив в общую папку (флешка, облако).
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="exportZIP()">&#8595; Скачать ZIP (данные + чеки)</button>
+      <label class="btn btn-primary" style="cursor:pointer">
+        &#8593; Загрузить ZIP
+        <input type="file" accept=".zip" onchange="importZIP(event)" style="display:none">
+      </label>
+    </div>
+    <div class="toolbar" style="margin-top:8px">
+      <button class="btn btn-green" onclick="exportExcel()">&#8595; Excel (.xlsx)</button>
+      <button class="btn btn-ghost" onclick="exportJSON()">&#8595; JSON-копия</button>
+      <label class="btn btn-ghost" style="cursor:pointer">
+        &#8593; JSON
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none">
+      </label>
+      <button class="btn btn-ghost" id="btn-pwa-install" style="display:none" onclick="installPWA()">
+        &#128187; Установить приложение
+      </button>
+    </div>
+
+    <div class="sec-hd" style="margin-top:8px">Сброс данных</div>
+    <button class="btn btn-red" onclick="resetAll()">Удалить все данные</button>
+  </div>
+
+  <!-- ═══ ВКЛАДКА: КОМИССИИ ФРИДОМ ═══ -->
+  <div class="tab-panel" id="tab-commissions">
+    <div class="banner banner-blue" style="margin-bottom:14px;font-size:12px">
+      &#128176; <strong>Комиссии Freedom Bank</strong> — парсируются автоматически из выписки Current
+      при нажатии «Добавить отмеченные». Носят <em>информационный характер</em> и не влияют на расчёт НДФЛ.
+    </div>
+    <div id="commission-list"></div>
+  </div>
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   INDEXEDDB — хранение чеков без лимита 5 МБ
+   Данные (доходы/расходы/командировки) остаются в localStorage (~50 КБ)
+   Чеки (Blob) хранятся в IndexedDB — объём ограничен только диском
+═══════════════════════════════════════════════════════════════════ */
+var _db = null;
+var _pendingReceiptBlob = null; // { blob, name, type }
+
+function openDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('ndfl3receipts', 1);
+    req.onupgradeneeded = function(e) {
+      e.target.result.createObjectStore('receipts', { keyPath: 'id' });
+    };
+    req.onsuccess = function(e) { _db = e.target.result; resolve(_db); };
+    req.onerror   = function(e) { reject(e.target.error); };
+  });
+}
+function dbSaveReceipt(id, blob, name, type) {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('receipts', 'readwrite');
+      tx.objectStore('receipts').put({ id:id, blob:blob, name:name, type:type });
+      tx.oncomplete = resolve;
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function dbGetReceipt(id) {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var req = db.transaction('receipts','readonly').objectStore('receipts').get(id);
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror   = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function dbDeleteReceipt(id) {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('receipts','readwrite');
+      tx.objectStore('receipts').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function dbGetAllReceipts() {
+  return openDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var req = db.transaction('receipts','readonly').objectStore('receipts').getAll();
+      req.onsuccess = function(e) { resolve(e.target.result||[]); };
+      req.onerror   = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+// Открыть чек (из IndexedDB)
+function openReceipt(receiptId) {
+  dbGetReceipt(receiptId).then(function(r) {
+    if (!r) { toast('Чек не найден в хранилище', 'err'); return; }
+    var url = URL.createObjectURL(r.blob);
+    if (r.type === 'pdf') {
+      var a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.download = r.name; a.click();
+    } else {
+      var w = window.open('');
+      w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh">' +
+        '<img src="' + url + '" style="max-width:100%;max-height:100vh;display:block"></body></html>');
+    }
+    setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+  }).catch(function() { toast('Ошибка открытия чека', 'err'); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   МИГРАЦИЯ: перенос старых base64-чеков из localStorage → IndexedDB
+   Запускается один раз при загрузке, если есть старые данные
+═══════════════════════════════════════════════════════════════════ */
+async function migrateReceiptsToIDB() {
+  var dirty = false;
+  for (var i = 0; i < S.expenses.length; i++) {
+    var exp = S.expenses[i];
+    if (exp.receipt && exp.receipt.dataUrl && !exp.receiptId) {
+      try {
+        // Конвертируем base64 → Blob
+        var parts  = exp.receipt.dataUrl.split(',');
+        var mime   = parts[0].match(/:(.*?);/)[1];
+        var binary = atob(parts[1]);
+        var arr    = new Uint8Array(binary.length);
+        for (var j = 0; j < binary.length; j++) arr[j] = binary.charCodeAt(j);
+        var blob = new Blob([arr], { type: mime });
+        var rid  = 'rcpt_' + exp.id;
+        await dbSaveReceipt(rid, blob, exp.receipt.name || 'receipt', exp.receipt.type || 'image');
+        exp.receiptId = rid;
+        delete exp.receipt; // убираем base64 из localStorage
+        dirty = true;
+      } catch(e) { /* если не получилось — оставляем как есть */ }
+    }
+  }
+  if (dirty) { save(); renderAll(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ZIP ЭКСПОРТ / ИМПОРТ — перенос данных между компьютерами
+   Архив содержит: data.json + папку receipts/ с чеками
+═══════════════════════════════════════════════════════════════════ */
+function loadJSZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = function() { resolve(window.JSZip); };
+    s.onerror = function() { reject(new Error('Нет интернета для загрузки JSZip')); };
+    document.head.appendChild(s);
+  });
+}
+
+async function exportZIP() {
+  toast('Подготовка архива...');
+  try {
+    var JSZip   = await loadJSZip();
+    var zip     = new JSZip();
+    var receipts = await dbGetAllReceipts();
+
+    // data.json — только ссылки (receiptId), без бинарных данных
+    var exportS = JSON.parse(JSON.stringify(S));
+    zip.file('data.json', JSON.stringify(exportS, null, 2));
+
+    // receipts/ — чеки как Blob
+    if (receipts.length > 0) {
+      var folder = zip.folder('receipts');
+      receipts.forEach(function(r) {
+        var safeName = r.name.replace(/[^a-zA-Z0-9а-яёА-ЯЁ._-]/g, '_').slice(0, 60);
+        folder.file(r.id + '__' + safeName, r.blob);
+      });
+    }
+
+    var content = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{level:6} });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'ndfl3_' + new Date().getFullYear() + '_' +
+      new Date().toISOString().slice(0,10) + '.zip';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+    toast('✓ Архив скачан (' + receipts.length + ' чеков, ' + Math.round(content.size/1024) + ' КБ)');
+  } catch(e) {
+    toast('Ошибка ZIP: ' + e.message, 'err');
+  }
+}
+
+async function importZIP(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  try {
+    var JSZip = await loadJSZip();
+    toast('Читаю архив...');
+    var zip   = await JSZip.loadAsync(file);
+
+    // Читаем data.json
+    var dataFile = zip.file('data.json');
+    if (!dataFile) { toast('data.json не найден в архиве', 'err'); return; }
+    var imported = JSON.parse(await dataFile.async('string'));
+    if (!Array.isArray(imported.incomes) && !Array.isArray(imported.expenses)) {
+      toast('Неверный формат архива', 'err'); return;
+    }
+
+    // Загружаем чеки в IndexedDB
+    var receiptCount = 0;
+    var receiptNames = [];
+    zip.forEach(function(path, entry) {
+      if (path.startsWith('receipts/') && !entry.dir) receiptNames.push({path, entry});
+    });
+    for (var i = 0; i < receiptNames.length; i++) {
+      var rf   = receiptNames[i];
+      var blob = await rf.entry.async('blob');
+      var fname = rf.path.replace('receipts/', '');
+      var sepIdx = fname.indexOf('__');
+      var rid = sepIdx > -1 ? fname.slice(0, sepIdx) : fname;
+      var name = sepIdx > -1 ? fname.slice(sepIdx+2) : fname;
+      var type = name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image';
+      await dbSaveReceipt(rid, blob, name, type);
+      receiptCount++;
+    }
+
+    // Восстанавливаем данные
+    S = { incomes:[], trips:[], expenses:[], hspb:0 };
+    S.incomes  = imported.incomes  || [];
+    S.trips    = imported.trips    || [];
+    S.expenses = imported.expenses || [];
+    S.hspb     = imported.hspb    || 0;
+    save(); renderAll();
+    await migrateReceiptsToIDB(); // на случай если в архиве старый формат
+    toast('✓ Загружено: ' + S.incomes.length + ' доходов, ' + S.expenses.length +
+          ' расходов, ' + receiptCount + ' чеков');
+  } catch(e) {
+    toast('Ошибка импорта: ' + e.message, 'err');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PWA — манифест и кнопка «Установить приложение»
+═══════════════════════════════════════════════════════════════════ */
+(function initPWA() {
+  // Манифест (создаётся как Blob — работает при открытии через HTTPS / GitHub Pages)
+  var icon = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+    '<rect width="100" height="100" rx="18" fill="#0F6E56"/>' +
+    '<text y="75" x="50" text-anchor="middle" font-size="60" font-family="sans-serif" fill="#fff">₽</text>' +
+    '</svg>'
+  );
+  var manifest = {
+    name: 'Калькулятор 3-НДФЛ',
+    short_name: '3-НДФЛ',
+    description: 'Расчёт НДФЛ для командированного сотрудника. Поддерживает импорт выписок Freedom Bank.',
+    start_url: './',
+    display: 'standalone',
+    background_color: '#f5f4f2',
+    theme_color: '#0F6E56',
+    lang: 'ru',
+    icons: [{ src: icon, sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
+  };
+  var mBlob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+  var mEl = document.getElementById('pwa-manifest');
+  if (mEl) mEl.href = URL.createObjectURL(mBlob);
+})();
+
+var _installPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  _installPrompt = e;
+  var btn = document.getElementById('btn-pwa-install');
+  if (btn) btn.style.display = 'flex';
+});
+function installPWA() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(function() { _installPrompt = null; });
+    var btn = document.getElementById('btn-pwa-install');
+    if (btn) btn.style.display = 'none';
+  }
+}
+
+
+var S = { incomes:[], trips:[], expenses:[], hspb:0 };
+
+function save(){
+  try{
+    localStorage.setItem('ndfl3v3', JSON.stringify(S));
+  }catch(e){
+    // QuotaExceededError — скорее всего переполнен localStorage (чеки занимают много места)
+    if(e && (e.name==='QuotaExceededError'||e.code===22)){
+      toast('⚠️ Хранилище переполнено! Удалите чеки из расходов или очистите старые данные.', 'warn');
+    }
+  }
+}
+function load(){
+  try{
+    var r = localStorage.getItem('ndfl3v3');
+    if(r){ S = JSON.parse(r); }
+    S.incomes     = S.incomes     || [];
+    S.trips       = S.trips       || [];
+    S.expenses    = S.expenses    || [];
+    S.hspb        = S.hspb        || 0;
+    S.commissions = S.commissions || [];
+  }catch(e){}
+  // Миграция старых base64-чеков → IndexedDB (один раз)
+  setTimeout(migrateReceiptsToIDB, 500);
+  // Тихая авто-очистка дублей при загрузке (нет toast)
+  dedupIncomesSilent();
+}
+
+// Тихая дедупликация — используется при загрузке и после каждого импорта
+function dedupIncomesSilent() {
+  if (!S.incomes || S.incomes.length < 2) return 0;
+  var groups = {};
+  S.incomes.forEach(function(inc) {
+    var key = inc.date + ':' + Math.round(inc.amount*100) + ':' + inc.currency;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(inc);
+  });
+  var removed = 0;
+  var clean = [];
+  Object.keys(groups).forEach(function(key) {
+    var grp = groups[key];
+    if (grp.length === 1) { clean.push(grp[0]); return; }
+    // Среди дублей оставляем запись с beneficiary + purpose
+    var best = grp.slice().sort(function(a,b){
+      return ((b.beneficiary?2:0)+(b.purpose?1:0)) - ((a.beneficiary?2:0)+(a.purpose?1:0));
+    })[0];
+    clean.push(best);
+    removed += grp.length - 1;
+  });
+  if (removed > 0) {
+    S.incomes = clean;
+    save();
+  }
+  return removed;
+}
+
+// Переключение вкладок
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  var panel = ge('tab-' + id);
+  if(panel) panel.classList.add('active');
+  if(id === 'tax') renderTax();
+  if(id === 'commissions') renderCommissions();
+}
+
+// Инициализация первой вкладки
+(function(){
+  var firstBtn = document.querySelector('.tab-btn');
+  if(firstBtn){ firstBtn.classList.add('active'); }
+  var firstPanel = ge('tab-incomes');
+  if(firstPanel){ firstPanel.classList.add('active'); }
+}());
+
+// Курс ЦБ
+function onCurrencyChange(){
+  var c = ge('i-currency').value;
+  if(c==='RUB'){
+    ge('i-rate').value = '1';
+    setRS('RUB = 1 \u20bd', true);
+  } else {
+    ge('i-rate').value = '';
+    setRS('', null);
+  }
+}
+
+function fetchRate(){
+  var dateVal  = ge('i-date').value;
+  var currency = ge('i-currency').value;
+  if(!dateVal){ toast('Сначала выберите дату'); return; }
+  if(currency==='RUB'){
+    ge('i-rate').value='1';
+    setRS('RUB = 1 \u20bd', true); return;
+  }
+  var btn = ge('fetch-btn');
+  btn.textContent='...'; btn.disabled=true;
+  setRS('Загружаю...', null);
+  getRateForDate(dateVal, currency).then(function(rate){
+    ge('i-rate').value = rate.toFixed(4);
+    setRS(currency+' = '+rate.toFixed(4)+' \u20bd (ЦБ РФ)', true);
+  }).catch(function(e){
+    setRS('Ошибка: '+e.message, false);
+  }).finally(function(){
+    btn.textContent='\u21C4 Загрузить курс'; btn.disabled=false;
+  });
+}
+
+function getRateForDate(dateStr, currency){
+  var attempts = [];
+  for(var i=0;i<5;i++){
+    (function(offset){
+      attempts.push(offset);
+    })(i);
+  }
+  var idx = 0;
+  function tryNext(){
+    if(idx>=attempts.length) return Promise.reject(new Error('Курс '+currency+' не найден'));
+    var offset = attempts[idx++];
+    var d = new Date(dateStr);
+    d.setDate(d.getDate()-offset);
+    var dd   = String(d.getDate()).padStart(2,'0');
+    var mm   = String(d.getMonth()+1).padStart(2,'0');
+    var yyyy = d.getFullYear();
+    return fetch('https://www.cbr-xml-daily.ru/archive/'+yyyy+'/'+mm+'/'+dd+'/daily_json.js')
+      .then(function(resp){
+        if(!resp.ok) return tryNext();
+        return resp.json().then(function(data){
+          if(data.Valute && data.Valute[currency]){
+            var v = data.Valute[currency];
+            return v.Value / v.Nominal;
+          }
+          return tryNext();
+        });
+      }).catch(function(){ return tryNext(); });
+  }
+  return tryNext();
+}
+
+function setRS(msg, ok){
+  var el = ge('rate-status');
+  el.textContent = msg;
+  el.className = 'rate-st'+(ok===true?' rate-ok':ok===false?' rate-err':'');
+}
+
+// Доходы
+var TYPE_LABEL = {salary:'Зарплата', bonus:'Ауслёзунг', service:'Служебные расходы', interest:'Проценты по вкладу'};
+var TYPE_PILL  = {salary:'pill-green', bonus:'pill-blue', service:'pill-gray', interest:'pill-orange'};
+var IS_TAXABLE = {salary:true, bonus:true, service:false, interest:true};
+
+function addIncome(){
+  var date     = ge('i-date').value;
+  var currency = ge('i-currency').value;
+  var amount   = parseFloat(ge('i-amount').value);
+  var type     = ge('i-type').value;
+  var rate     = parseFloat(ge('i-rate').value)||(currency==='RUB'?1:0);
+  var desc     = ge('i-desc').value.trim();
+  if(!date)             { toast('Укажите дату'); return; }
+  if(!amount||amount<=0){ toast('Укажите сумму'); return; }
+  if(!rate||rate<=0)    { toast('Укажите курс ЦБ — нажмите «Загрузить курс»'); return; }
+  S.incomes.push({id:Date.now(), date:date, currency:currency, amount:amount,
+                  rate:rate, amountRub:amount*rate, type:type, desc:desc,
+                  beneficiary:'', purpose:''});
+  S.incomes.sort(function(a,b){return a.date.localeCompare(b.date);});
+  save(); renderAll();
+  ge('i-amount').value=''; ge('i-rate').value=''; ge('i-desc').value='';
+  setRS('',null);
+  toast('Доход добавлен');
+}
+
+// Удаление дублирующихся доходов (одинаковые дата+сумма+валюта)
+// Среди дублей оставляем запись С beneficiary (новый формат), иначе первую
+function removeDuplicateIncomes() {
+  var groups = {};
+  S.incomes.forEach(function(inc) {
+    var key = inc.date + ':' + Math.round(inc.amount*100) + ':' + inc.currency;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(inc);
+  });
+  var removed = 0;
+  var clean = [];
+  Object.keys(groups).forEach(function(key) {
+    var grp = groups[key];
+    if (grp.length === 1) { clean.push(grp[0]); return; }
+    // Предпочитаем запись с beneficiary (новый формат с полными данными)
+    var best = grp.slice().sort(function(a,b){
+      return ((b.beneficiary?2:0)+(b.purpose?1:0)) - ((a.beneficiary?2:0)+(a.purpose?1:0));
+    })[0];
+    clean.push(best);
+    removed += grp.length - 1;
+  });
+  S.incomes = clean.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  save(); renderAll();
+  toast(removed > 0 ? ('Удалено дублей: ' + removed) : 'Дублей не найдено');
+}
+
+function deleteIncome(id){
+  S.incomes = S.incomes.filter(function(i){return i.id!==id;});
+  save(); renderAll();
+}
+
+function renderIncomes(){
+  var wrap = ge('income-list');
+  if(!S.incomes.length){
+    wrap.innerHTML='<div class="empty-st">Нет записей о доходах &mdash; добавьте первую выплату выше</div>';
+  } else {
+    // Всегда сортируем по дате при выводе (вне зависимости от порядка в S.incomes)
+    var sortedInc = S.incomes.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+    wrap.innerHTML = sortedInc.map(function(i){
+      var noRate = i.needsRate && (!i.rate || i.rate<=0);
+      var rateWarn = noRate ? '<span class="pill pill-red" style="font-size:10px" title="Нет курса ЦБ">! курс</span>' : '';
+      var taxBadge = IS_TAXABLE[i.type]
+        ? '' : '<span class="pill pill-orange" style="font-size:10px">не облагается</span>';
+      var pillLabel = TYPE_LABEL[i.type] || i.type;
+      var pillCls   = TYPE_PILL[i.type]  || 'pill-gray';
+      // Строка с бенефициаром и назначением
+      var ben  = i.beneficiary ? escHtml(i.beneficiary) : '';
+      // Не показываем сырой text desc (начинается с даты или «АО»)
+      var rawDesc = /^\d{2}\.\d{2}\.\d{4}|^АО[\s"«]|^KZ\d|^DE\d/.test(i.desc || '');
+      var purp = i.purpose ? escHtml(i.purpose) :
+                 (!rawDesc && i.desc ? escHtml(i.desc.slice(0, 90)) : '');
+      var subLine = '';
+      if(ben || purp){
+        subLine = '<div style="margin-top:3px;font-size:11px;color:var(--text2);line-height:1.35">'+
+          (ben  ? '<span style="color:var(--text);font-weight:500">'+ben+'</span>' : '')+
+          (ben && purp ? ' · ' : '')+
+          (purp ? purp : '')+
+        '</div>';
+      }
+      return '<div class="li" style="align-items:flex-start">'+
+        '<span class="li-date" style="padding-top:2px">'+fmtDate(i.date)+'</span>'+
+        '<span class="li-main">'+
+          '<span class="pill '+pillCls+'">'+pillLabel+'</span>'+taxBadge+rateWarn+
+          subLine+
+        '</span>'+
+        '<span class="li-amt">'+
+          fmtNum(i.amount)+' '+i.currency+
+          '<small>'+fmtRub(i.amountRub)+'</small>'+
+        '</span>'+
+        '<button class="li-del" onclick="deleteIncome('+i.id+')" title="Удалить">&times;</button>'+
+        '</div>';
+    }).join('');
+  }
+  renderCalendar();
+}
+
+// Календарь
+var DOW_L  = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+var MON_L  = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+              'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+function renderCalendar(){
+  var wrap = ge('income-calendar');
+  if(!S.incomes.length){ wrap.innerHTML=''; return; }
+  var byMonth = {};
+  S.incomes.forEach(function(i){
+    var ym = i.date.slice(0,7);
+    if(!byMonth[ym]) byMonth[ym]=[];
+    byMonth[ym].push(i);
+  });
+  wrap.innerHTML = Object.keys(byMonth).sort().map(function(ym){
+    var parts = ym.split('-');
+    var y = parseInt(parts[0]), m = parseInt(parts[1]);
+    var dayMap = {};
+    byMonth[ym].forEach(function(i){
+      var d = parseInt(i.date.slice(8));
+      if(!dayMap[d]) dayMap[d]={totalRub:0,count:0,hasSalary:false,hasBonus:false,hasService:false};
+      dayMap[d].totalRub += i.amountRub;
+      dayMap[d].count++;
+      if(i.type==='salary') dayMap[d].hasSalary = true;
+      else if(i.type==='bonus') dayMap[d].hasBonus = true;
+      else dayMap[d].hasService = true;
+    });
+    var firstDow = (new Date(y,m-1,1).getDay()+6)%7;
+    var lastDay  = new Date(y,m,0).getDate();
+    var heads = DOW_L.map(function(d){return '<div class="cal-dow">'+d+'</div>';}).join('');
+    var empts = '';
+    for(var e=0;e<firstDow;e++) empts+='<div class="cal-day empty"></div>';
+    var days='';
+    for(var d=1;d<=lastDay;d++){
+      if(dayMap[d]){
+        var dm = dayMap[d];
+        var tip = fmtRub(dm.totalRub)+' &middot; '+dm.count+' зап.';
+        // Приоритет цвета: зарплата > командировочные > служебные
+        var cls = 'cal-day ';
+        if(dm.hasSalary) cls += 'has-salary';
+        else if(dm.hasBonus) cls += 'has-bonus';
+        else cls += 'has-service';
+        // Если несколько типов — добавляем mixed
+        var types = (dm.hasSalary?1:0)+(dm.hasBonus?1:0)+(dm.hasService?1:0);
+        if(types>1) cls += ' cal-mixed';
+        days+='<div class="'+cls+'">'+d+'<div class="cal-tip">'+tip+'</div></div>';
+      } else {
+        days+='<div class="cal-day">'+d+'</div>';
+      }
+    }
+    return '<div class="month-card">'+
+      '<div class="month-title">'+MON_L[m-1]+' '+y+'</div>'+
+      '<div class="cal-grid">'+heads+empts+days+'</div>'+
+      '</div>';
+  }).join('');
+}
+
+// Командировки
+function addTrip(){
+  var start = ge('t-start').value;
+  var end   = ge('t-end').value;
+  var desc  = ge('t-desc').value.trim();
+  if(!start||!end){ toast('Укажите обе даты'); return; }
+  if(start>end)   { toast('Дата начала позже даты конца'); return; }
+  var days = daysBetween(start,end);
+  S.trips.push({id:Date.now(), start:start, end:end, days:days, desc:desc});
+  S.trips.sort(function(a,b){return a.start.localeCompare(b.start);});
+  save(); renderAll();
+  toast('Командировка '+days+' дн. добавлена');
+}
+
+function deleteTrip(id){
+  S.trips = S.trips.filter(function(t){return t.id!==id;});
+  save(); renderAll();
+}
+
+function renderTrips(){
+  var wrap = ge('trip-list');
+  if(!S.trips.length){
+    wrap.innerHTML='<div class="empty-st">Нет командировок</div>';
+    return;
+  }
+  var totalDays = S.trips.reduce(function(s,t){return s+t.days;},0);
+  var html = '<div class="banner banner-green">Итого: <strong>'+totalDays+' дней</strong> &middot; Вычет суточных: <strong>'+fmtRub(totalDays*2500)+'</strong></div>';
+  html += S.trips.map(function(t){
+    var tripExp = S.expenses.filter(function(e){ return String(e.tripId) === String(t.id); });
+    var tripExpTotal = tripExp.reduce(function(s,e){ return s+e.amountRub; }, 0);
+    var expHtml = '';
+    if(tripExp.length){
+      expHtml = '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid var(--border)">' +
+        '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Расходы командировки · '+fmtRub(tripExpTotal)+'</div>' +
+        tripExp.map(function(e){
+          var rcpt = e.receiptId ? '<button class="pill pill-blue" style="cursor:pointer;border:none;padding:2px 6px;font-size:10px" onclick="openReceipt(\''+e.receiptId+'\')">&#128196;</button>' : '';
+          return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:3px">'+
+            '<span style="min-width:70px">'+fmtDate(e.date)+'</span>'+
+            '<span style="flex:1">'+(e.desc||'&mdash;')+'</span>'+
+            rcpt+
+            '<span style="font-weight:500;color:var(--text)">'+fmtNum(e.amount)+' '+e.currency+'</span>'+
+            '<span style="min-width:80px;text-align:right">'+fmtRub(e.amountRub)+'</span>'+
+            '<button class="li-del" onclick="deleteExpense('+e.id+')" title="Удалить расход">&times;</button>'+
+            '</div>';
+        }).join('')+
+        '</div>';
+    }
+    return '<div class="li" style="flex-direction:column;align-items:stretch;gap:0">'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+        '<span class="li-date">'+fmtDate(t.start)+'</span>'+
+        '<span class="li-main">&rarr; '+fmtDate(t.end)+(t.desc?' &middot; <strong>'+t.desc+'</strong>':'')+
+          (tripExp.length ? ' <span class="pill pill-orange" style="font-size:10px">'+tripExp.length+' расх.</span>' : '')+
+        '</span>'+
+        '<span class="li-amt"><span class="pill pill-green">'+t.days+' дн.</span><small>'+fmtRub(t.days*2500)+'</small></span>'+
+        '<button class="li-del" onclick="deleteTrip('+t.id+')">&times;</button>'+
+      '</div>'+
+      expHtml+
+    '</div>';
+  }).join('');
+  wrap.innerHTML = html;
+}
+
+// Расходы
+// Временное хранилище чека (dataUrl) при добавлении расхода
+// _pendingReceiptBlob определён выше (IndexedDB)
+
+function previewReceipt(event) {
+  var file = event.target.files[0];
+  if (!file) { _pendingReceiptBlob = null; ge('e-receipt-name').textContent = ''; return; }
+  ge('e-receipt-name').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' КБ)';
+  var preview = ge('e-receipt-preview');
+  preview.innerHTML = '';
+
+  if (file.type === 'application/pdf') {
+    _pendingReceiptBlob = { blob: file, name: file.name, type: 'pdf' };
+    preview.innerHTML = '<span style="font-size:12px;color:var(--blue)">&#128196; PDF готов (' + (file.size/1024).toFixed(0) + ' КБ)</span>';
+  } else {
+    var img = new Image();
+    var objUrl = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(objUrl);
+      var maxDim = 1400, q = 0.78;
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else        { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(function(blob) {
+        var sizeKb = Math.round(blob.size / 1024);
+        _pendingReceiptBlob = { blob: blob, name: file.name.replace(/\.[^.]+$/, '.jpg'), type: 'image' };
+        var prevUrl = URL.createObjectURL(blob);
+        var warn = sizeKb > 300 ? ' <span style="color:var(--orange)">(' + sizeKb + ' КБ)</span>' : '';
+        preview.innerHTML = '<img src="' + prevUrl + '" style="max-height:80px;max-width:200px;' +
+          'border-radius:6px;cursor:pointer;border:.5px solid var(--border)" onclick="window.open(this.src)">' + warn;
+        setTimeout(function() { URL.revokeObjectURL(prevUrl); }, 60000);
+      }, 'image/jpeg', q);
+    };
+    img.src = objUrl;
+  }
+}
+
+function fetchExpenseRate() {
+  var date = ge('e-date').value;
+  var cur  = (ge('e-currency').value||'').trim().toUpperCase();
+  if (!date || !cur || cur === 'RUB') return;
+  ge('e-rate-status').textContent = '...';
+  getRateForDate(date, cur).then(function(rate) {
+    if (rate > 0) {
+      ge('e-rate').value = rate;
+      ge('e-rate-status').textContent = '= ' + rate;
+    } else {
+      ge('e-rate-status').textContent = 'не найден';
+    }
+  }).catch(function() { ge('e-rate-status').textContent = 'ошибка'; });
+}
+
+function autoFetchExpenseRate() {
+  var date = ge('e-date').value;
+  var cur  = (ge('e-currency').value||'').trim().toUpperCase();
+  if (!date || !cur || cur.length !== 3 || cur === 'RUB') return;
+  fetchExpenseRate();
+}
+
+function addExpense(){
+  var date     = ge('e-date').value;
+  var currency = (ge('e-currency').value||'').trim().toUpperCase() || 'RUB';
+  var amount   = parseFloat(ge('e-amount').value);
+  var rate     = parseFloat(ge('e-rate').value)||(currency==='RUB'?1:0);
+  var desc     = ge('e-desc').value.trim();
+  if(!date)             { toast('Укажите дату'); return; }
+  if(!amount||amount<=0){ toast('Укажите сумму'); return; }
+  if(!rate)             { toast('Укажите курс ЦБ или загрузите кнопкой ↺'); return; }
+  var rec = {id:Date.now(), date:date, currency:currency, amount:amount,
+             rate:rate, amountRub:Math.round(amount*rate*100)/100, desc:desc,
+             tripId: ge('e-trip') ? (ge('e-trip').value || null) : null};
+  var pendingBlob = _pendingReceiptBlob;
+  _pendingReceiptBlob = null;
+  function finishAdd() {
+    S.expenses.push(rec);
+    S.expenses.sort(function(a,b){return a.date.localeCompare(b.date);});
+    save(); renderAll();
+    ge('e-amount').value=''; ge('e-desc').value='';
+    ge('e-rate').value=''; ge('e-rate-status').textContent='';
+    ge('e-receipt').value=''; ge('e-receipt-name').textContent='';
+    ge('e-receipt-preview').innerHTML='';
+    toast('Расход добавлен' + (rec.receiptId ? ' + чек' : ''));
+  }
+  if (pendingBlob) {
+    var rid = 'rcpt_' + rec.id;
+    dbSaveReceipt(rid, pendingBlob.blob, pendingBlob.name, pendingBlob.type)
+      .then(function() { rec.receiptId = rid; finishAdd(); })
+      .catch(function() { toast('Чек не сохранён (ошибка хранилища)', 'warn'); finishAdd(); });
+  } else {
+    finishAdd();
+  }
+}
+
+function deleteExpense(id){
+  var exp = S.expenses.find(function(e){return e.id===id;});
+  if (exp && exp.receiptId) dbDeleteReceipt(exp.receiptId).catch(function(){});
+  S.expenses = S.expenses.filter(function(e){return e.id!==id;});
+  save(); renderAll();
+}
+
+function renderExpenses(){
+  var wrap = ge('expense-list');
+  if(!S.expenses.length){
+    wrap.innerHTML='<div class="empty-st">Нет расходов</div>';
+    return;
+  }
+  var total = S.expenses.reduce(function(s,e){return s+e.amountRub;},0);
+  var sortedExp = S.expenses.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+  wrap.innerHTML =
+    '<div class="banner banner-orange">Итого расходов: <strong>'+fmtRub(total)+'</strong> &middot; Не облагаются НДФЛ</div>'+
+    sortedExp.map(function(e){
+      var rcpt = '';
+      if(e.receiptId) {
+        // Новый формат — чек в IndexedDB
+        rcpt = '<button class="pill pill-blue" style="cursor:pointer;border:none;padding:3px 8px;font-size:11px" '+
+               'onclick="openReceipt(\''+e.receiptId+'\')" title="Открыть чек">&#128196; чек</button>';
+      } else if(e.receipt && e.receipt.dataUrl) {
+        // Старый формат base64 — обратная совместимость
+        rcpt = '<img src="'+e.receipt.dataUrl+'" class="receipt-thumb" onclick="window.open(this.src)" title="'+e.receipt.name+'">';
+      }
+      var tripBadge = '';
+      if(e.tripId) {
+        var linkedTrip = S.trips.find(function(t){ return String(t.id) === String(e.tripId); });
+        if(linkedTrip) {
+          var tripLabel = linkedTrip.desc || (fmtDate(linkedTrip.start)+' – '+fmtDate(linkedTrip.end));
+          tripBadge = '<span class="pill pill-green" style="font-size:10px">✈ '+tripLabel+'</span> ';
+        }
+      }
+      return '<div class="li">'+
+        '<span class="li-date">'+fmtDate(e.date)+'</span>'+
+        '<span class="li-main">'+tripBadge+(e.desc||'&mdash;')+'</span>'+
+        rcpt+
+        '<span class="li-amt">'+fmtNum(e.amount)+' '+e.currency+'<small>'+fmtRub(e.amountRub)+'</small></span>'+
+        '<button class="li-del" onclick="deleteExpense('+e.id+')">&times;</button>'+
+        '</div>';
+    }).join('');
+}
+
+// Расчёт
+function calc(){
+  // Проверяем записи без загруженного курса ЦБ
+  var missingRate = S.incomes.filter(function(i){ return i.needsRate && (!i.rate||i.rate<=0); });
+  var totalIncome  = S.incomes.reduce(function(s,i){return s+i.amountRub;},0);
+  var serviceAmt   = S.incomes.filter(function(i){return !IS_TAXABLE[i.type];})
+                               .reduce(function(s,i){return s+i.amountRub;},0);
+  var taxableGross = totalIncome - serviceAmt;
+  var tripDays     = S.trips.reduce(function(s,t){return s+t.days;},0);
+  var tripDeduct   = tripDays * 2500;
+  var expDeduct    = S.expenses.reduce(function(s,e){return s+e.amountRub;},0);
+  var totalDeduct  = tripDeduct + expDeduct;
+  var base         = Math.max(0, taxableGross - totalDeduct);
+  var tax = 0;
+  if(base <= 2400000)      tax = base * 0.13;
+  else if(base <= 5000000) tax = 2400000*0.13 + (base-2400000)*0.15;
+  else                     tax = 2400000*0.13 + 2600000*0.15 + (base-5000000)*0.18;
+  var hspbEl = ge('hspb');
+  var hspb  = S.hspb || (hspbEl ? parseFloat(hspbEl.value)||0 : 0);
+  var toPay = Math.max(0, tax - hspb);
+  return {totalIncome:totalIncome, serviceAmt:serviceAmt, taxableGross:taxableGross,
+          tripDays:tripDays, tripDeduct:tripDeduct, expDeduct:expDeduct,
+          totalDeduct:totalDeduct, base:base, tax:tax, hspb:hspb, toPay:toPay,
+          missingRate: missingRate.length};
+}
+
+function renderTax(){
+  var r = calc();
+  ge('m-income').textContent     = fmtShort(r.totalIncome);
+  ge('m-income-cnt').textContent = S.incomes.length+' записей';
+  ge('m-deduct').textContent     = fmtShort(r.totalDeduct);
+  ge('m-deduct-sub').textContent = r.tripDays+' дн. \xd7 2\u202f500 + расходы';
+  var taxEl = ge('m-tax');
+  taxEl.textContent = fmtShort(r.toPay);
+  taxEl.className   = 'm-val '+(r.toPay>100000?'c-over':r.toPay>0?'c-warn':'c-ok');
+  ge('m-tax-sub').textContent = r.hspb>0 ? 'после вычета '+fmtShort(r.hspb)+' уплаченных' : 'расчётный';
+
+  var pct  = Math.min(100, (r.base/5000000)*100);
+  var fill = ge('prog-fill');
+  fill.style.width      = pct+'%';
+  fill.style.background = r.base>5000000?'var(--red)':r.base>2400000?'var(--orange)':'var(--green)';
+  ge('prog-center').textContent = 'база: '+fmtRub(r.base);
+
+  var rateStr = r.base<=2400000?'13%':r.base<=5000000?'13\u201315%':'13\u201318%';
+  var bd = ge('tax-breakdown');
+  if(!bd) return;
+  var noRateBanner = r.missingRate > 0
+    ? '<div class="banner banner-red" style="margin-bottom:12px">&#9888; У '+r.missingRate+
+      ' '+(r.missingRate===1?'записи':'записей')+' не загружен курс ЦБ &mdash; '+
+      'налог ЗАНИЖЕН! Перейдите в «Доходы» и загрузите курс ЦБ.</div>'
+    : '';
+  bd.innerHTML= noRateBanner +
+    '<div class="sec-hd">Расшифровка расчёта</div>'+
+    '<div class="card" style="padding:8px 16px">'+
+      '<div class="tax-row"><span class="tax-lbl">Совокупный доход</span><span class="tax-val">'+fmtRub(r.totalIncome)+'</span></div>'+
+      '<div class="tax-row"><span class="tax-lbl">Служебные расходы (не облагаются)</span><span class="tax-val c-warn">\u2013 '+fmtRub(r.serviceAmt)+'</span></div>'+
+      '<div class="tax-row subtotal"><span class="tax-lbl">Облагаемый доход (до вычетов)</span><span class="tax-val">'+fmtRub(r.taxableGross)+'</span></div>'+
+      '<div class="tax-row"><span class="tax-lbl">Вычет суточных ('+r.tripDays+' дн. \xd7 2\u202f500 \u20bd)</span><span class="tax-val c-warn">\u2013 '+fmtRub(r.tripDeduct)+'</span></div>'+
+      '<div class="tax-row"><span class="tax-lbl">Вычет служебных расходов</span><span class="tax-val c-warn">\u2013 '+fmtRub(r.expDeduct)+'</span></div>'+
+      '<div class="tax-row subtotal"><span class="tax-lbl">Налоговая база</span><span class="tax-val">'+fmtRub(r.base)+'</span></div>'+
+      '<div class="tax-row"><span class="tax-lbl">Ставка НДФЛ</span><span class="tax-val">'+rateStr+'</span></div>'+
+      '<div class="tax-row"><span class="tax-lbl">Начисленный НДФЛ</span><span class="tax-val">'+fmtRub(r.tax)+'</span></div>'+
+      '<div class="tax-row"><span class="tax-lbl">Уплачено работодателем (HSPB)</span><span class="tax-val c-ok">\u2013 '+fmtRub(r.hspb)+'</span></div>'+
+      '<div class="tax-row total"><span>К уплате в ФНС</span><span class="'+(r.toPay>0?'c-over':'c-ok')+'">'+fmtRub(r.toPay)+'</span></div>'+
+    '</div>'+
+    renderMonthlyBreakdown() +
+    renderCharts();
+}
+
+// Экспорт
+function exportJSON(){
+  var blob = new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ndfl3_'+new Date().getFullYear()+'.json';
+  a.click();
+  toast('JSON сохранён');
+}
+
+function importJSON(event){
+  var file = event.target.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var d = JSON.parse(e.target.result);
+      S = {incomes:d.incomes||[],trips:d.trips||[],expenses:d.expenses||[],hspb:d.hspb||0};
+      save(); renderAll();
+      if(ge('hspb')) ge('hspb').value = S.hspb||'';
+      toast('Данные загружены');
+    }catch(ex){ toast('Ошибка файла'); }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function resetAll(){
+  if(!confirm('Удалить ВСЕ данные? Это нельзя отменить.')) return;
+  S={incomes:[],trips:[],expenses:[],hspb:0};
+  save(); renderAll();
+  if(ge('hspb')) ge('hspb').value='';
+  toast('Данные удалены');
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){ toast('XLSX не загружен'); return; }
+  var r  = calc();
+  var wb = XLSX.utils.book_new();
+  var inc=[['Дата','Валюта','Сумма (вал.)','Курс ЦБ','Сумма (\u20bd)','Тип','Облагается','Описание']];
+  S.incomes.forEach(function(i){
+    inc.push([i.date,i.currency,i.amount,i.rate,i.amountRub,TYPE_LABEL[i.type],IS_TAXABLE[i.type]?'Да':'Нет',i.desc||'']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(inc),'Доходы');
+  var tr=[['Начало','Конец','Дней','Вычет \u20bd','Страна']];
+  S.trips.forEach(function(t){tr.push([t.start,t.end,t.days,t.days*2500,t.desc||'']);});
+  tr.push(['','','ИТОГО',r.tripDeduct,'']);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tr),'Командировки');
+  var ex=[['Дата','Валюта','Сумма (вал.)','Курс','\u20bd','Описание']];
+  S.expenses.forEach(function(e){ex.push([e.date,e.currency,e.amount,e.rate,e.amountRub,e.desc||'']);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ex),'Расходы');
+  var tx=[
+    ['Показатель','Сумма (\u20bd)'],
+    ['Совокупный доход',r.totalIncome],
+    ['Служебные расходы (не облагаются)',r.serviceAmt],
+    ['Облагаемый доход (до вычетов)',r.taxableGross],
+    ['Вычет суточных',r.tripDeduct],
+    ['Вычет расходов',r.expDeduct],
+    ['Налоговая база',r.base],
+    ['Начисленный НДФЛ',r.tax],
+    ['Уплачено работодателем (HSPB)',r.hspb],
+    ['К уплате в ФНС',r.toPay]
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(tx),'Расчёт НДФЛ');
+
+  // ── Лист помесячной разбивки ─────────────────────────────────────
+  var MON_S=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  var mb = [['Месяц','Дата','Тип','Описание','Валюта','Сумма (вал.)','Сумма (₽)','Вычтено (₽)','К налогу (₽)','Дней команд.','Суточные (₽)','Расходы (₽)']];
+  calcMonthlyBreakdown().forEach(function(m){
+    var y=m.ym.slice(0,4), mo=parseInt(m.ym.slice(5,7));
+    var mLabel=MON_S[mo-1]+' '+y;
+    if(m.incomes.length){
+      m.incomes.forEach(function(i,idx){
+        mb.push([mLabel, i.date, TYPE_LABEL[i.type]||i.type, i.desc||'',
+                 i.currency, i.amount, i.amountRub, i.deducted, i.netRub,
+                 idx===0?m.tripDays:'', idx===0?m.dailyAllow:'', idx===0?m.expDeduct:'']);
+      });
+    } else if(m.tripDays>0||m.expDeduct>0){
+      mb.push([mLabel,'','','','','','','','',m.tripDays,m.dailyAllow,m.expDeduct]);
+    }
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mb),'По месяцам');
+
+  // ── Лист "Сводка и графики" с визуализацией (Unicode sparklines) ─
+  var r = calc();
+  var monthly = calcMonthlyBreakdown().filter(function(m){ return m.grossIncome>0; });
+  var maxInc = monthly.reduce(function(mx,m){ return Math.max(mx,m.grossIncome); }, 1);
+
+  var gRows = [
+    ['СВОДНАЯ ТАБЛИЦА ДОХОДОВ И НАЛОГА', '', '', '', '', ''],
+    [''],
+    ['Показатель','Сумма (₽)','','','',''],
+    ['Совокупный доход',             r.totalIncome,   '','','',''],
+    ['Служебные расходы (−)',        r.serviceAmt,    '','','',''],
+    ['Облагаемый доход',             r.taxableGross,  '','','',''],
+    ['Вычет суточных (−)',           r.tripDeduct,    '','','',''],
+    ['Вычет расходов (−)',           r.expDeduct,     '','','',''],
+    ['Налоговая база',               r.base,          '','','',''],
+    ['НДФЛ начислен',                r.tax,           '','','',''],
+    ['Уплачено работодателем (−)',   r.hspb,          '','','',''],
+    ['К УПЛАТЕ В ФНС',               r.toPay,         '','','',''],
+    [''],
+    ['ДОХОД ПО МЕСЯЦАМ', '', '', '', '', ''],
+    [''],
+    ['Месяц','Начислено (₽)','К налогу (₽)','Суточные (₽)','Расходы (₽)', 'Столбчатая диаграмма →'],
+  ];
+
+  monthly.forEach(function(m){
+    var mo = parseInt(m.ym.slice(5,7));
+    var bar = Math.round(m.grossIncome / maxInc * 30);
+    var netBar = Math.round(m.netIncome / maxInc * 30);
+    var filled = '█'.repeat(netBar) + '░'.repeat(bar - netBar) + '▒'.repeat(Math.max(0, 30 - bar));
+    gRows.push([MON_S[mo-1]+' '+m.ym.slice(0,4), m.grossIncome, m.netIncome, m.dailyAllow, m.expDeduct, filled]);
+  });
+
+  gRows.push(['']);
+  gRows.push(['Легенда: █ = к налогу, ░ = вычеты, ▒ = вне месяца (макс. = 30 символов)']);
+  gRows.push(['']);
+  gRows.push(['СТРУКТУРА ДОХОДА ПО ТИПАМ', '', '', '', '']);
+  gRows.push(['Тип', 'Сумма (₽)', '% от общего', 'Облагается?', '']);
+
+  var typeMap = {};
+  S.incomes.forEach(function(i){ typeMap[i.type] = (typeMap[i.type]||0) + i.amountRub; });
+  Object.keys(typeMap).forEach(function(t){
+    var pct = (typeMap[t] / r.totalIncome * 100).toFixed(1);
+    var bar2 = '█'.repeat(Math.round(typeMap[t]/r.totalIncome*20));
+    gRows.push([TYPE_LABEL[t]||t, typeMap[t], pct+'%', IS_TAXABLE[t]?'Да':'Нет', bar2]);
+  });
+
+  var gSheet = XLSX.utils.aoa_to_sheet(gRows);
+  // Ширина колонок
+  gSheet['!cols'] = [{wch:28},{wch:16},{wch:16},{wch:16},{wch:16},{wch:34}];
+  XLSX.utils.book_append_sheet(wb, gSheet, '📊 Сводка и графики');
+  XLSX.writeFile(wb,'3-\u041d\u0414\u0424\u041b_'+new Date().getFullYear()+'.xlsx');
+  toast('Excel скачан');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ПОМЕСЯЧНЫЙ РАСЧЁТ — логика из ТЗ Блок 4
+   Расходы (суточные + чеки) вычитаются последовательно из доходов
+   в пределах каждого месяца, начиная с первого поступления.
+═══════════════════════════════════════════════════════════════════ */
+function calcMonthlyBreakdown() {
+  var ymSet = {};
+  S.incomes.forEach(function(i){ ymSet[i.date.slice(0,7)]=1; });
+  S.expenses.forEach(function(e){ ymSet[e.date.slice(0,7)]=1; });
+  S.trips.forEach(function(t){
+    var cur=new Date(t.start+'T00:00:00'), end=new Date(t.end+'T00:00:00');
+    while(cur<=end){ ymSet[cur.toISOString().slice(0,7)]=1; cur.setDate(cur.getDate()+1); }
+  });
+
+  return Object.keys(ymSet).sort().map(function(ym){
+    // Только облагаемые доходы в этом месяце, сортированные по дате
+    var monthInc = S.incomes.filter(function(i){
+      return i.date.slice(0,7)===ym && IS_TAXABLE[i.type];
+    }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+    // Суточные за дни командировок, приходящихся на этот месяц
+    var ymFirst = new Date(ym+'-01T00:00:00');
+    var ymLast  = new Date(parseInt(ym.slice(0,4)), parseInt(ym.slice(5,7)), 0);
+    var tripDays = 0;
+    S.trips.forEach(function(t){
+      var tS = new Date(t.start+'T00:00:00'), tE = new Date(t.end+'T00:00:00');
+      var rS = tS<ymFirst?ymFirst:tS, rE = tE>ymLast?ymLast:tE;
+      if(rS<=rE) tripDays += Math.round((rE-rS)/86400000)+1;
+    });
+
+    // Расходы в этом месяце
+    var monthExp = S.expenses.filter(function(e){ return e.date.slice(0,7)===ym; });
+    var expDeduct = monthExp.reduce(function(s,e){ return s+e.amountRub; },0);
+    var dailyAllow = tripDays*2500;
+    var totalDeduct = dailyAllow+expDeduct;
+
+    // Водопадное вычитание из доходов
+    var remaining = totalDeduct;
+    var incomesNet = monthInc.map(function(i){
+      var deducted = Math.min(remaining, i.amountRub);
+      remaining -= deducted;
+      return {date:i.date, currency:i.currency, amount:i.amount,
+              amountRub:i.amountRub, type:i.type, desc:i.desc,
+              deducted:deducted, netRub:i.amountRub-deducted};
+    });
+
+    var grossIncome = monthInc.reduce(function(s,i){ return s+i.amountRub; },0);
+    var netIncome   = incomesNet.reduce(function(s,i){ return s+i.netRub; },0);
+    return {ym:ym, incomes:incomesNet, tripDays:tripDays, dailyAllow:dailyAllow,
+            expDeduct:expDeduct, totalDeduct:totalDeduct, grossIncome:grossIncome,
+            netIncome:netIncome, unusedDeduct:Math.max(0,remaining)};
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SVG ДИАГРАММЫ — встроенные графики в вкладке Расчёт
+═══════════════════════════════════════════════════════════════ */
+
+function fmtRubShort(v) {
+  if (v >= 1e6) return (v/1e6).toFixed(1) + ' млн';
+  if (v >= 1e3) return (v/1e3).toFixed(0) + ' тыс';
+  return Math.round(v) + ' ₽';
+}
+
+function renderCharts() {
+  var r = calc();
+  var monthly = calcMonthlyBreakdown().filter(function(m){ return m.grossIncome > 0 || m.tripDays > 0; });
+  if (!monthly.length && !r.totalIncome) return '';
+
+  var MON = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+
+  var html = '<div class="sec-hd" style="margin-top:28px">Графики</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+
+  /* ── Диаграмма 1: Доход vs Налогооблагаемая база по месяцам ── */
+  if (monthly.length) {
+    var maxInc = Math.max.apply(null, monthly.map(function(m){ return m.grossIncome; })) || 1;
+    var W = 340, H = 160, pad = 40, bGap = 4;
+    var barCount = monthly.length;
+    var bW = Math.max(6, Math.floor((W - pad - barCount * bGap) / (barCount * 2)));
+
+    var bars = '', labels = '';
+    monthly.forEach(function(m, i) {
+      var mo = parseInt(m.ym.slice(5,7));
+      var x0 = pad + i * (bW * 2 + bGap);
+      var h1 = Math.round((m.grossIncome / maxInc) * (H - 20));
+      var h2 = Math.round((m.netIncome    / maxInc) * (H - 20));
+      bars += '<rect x="'+x0+'" y="'+(H-h1)+'" width="'+bW+'" height="'+h1+'" fill="#4f90cd" rx="2" opacity=".85"/>';
+      bars += '<rect x="'+(x0+bW+1)+'" y="'+(H-h2)+'" width="'+bW+'" height="'+h2+'" fill="#4caf50" rx="2" opacity=".85"/>';
+      labels += '<text x="'+(x0+bW)+'" y="'+(H+14)+'" text-anchor="middle" font-size="9" fill="#888">'+MON[mo-1]+'</text>';
+    });
+
+    html += '<div class="card" style="padding:14px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:8px">Доход по месяцам</div>';
+    html += '<svg width="100%" viewBox="0 0 '+(W+10)+' '+(H+24)+'" style="overflow:visible">';
+    html += '<line x1="'+pad+'" y1="0" x2="'+pad+'" y2="'+H+'" stroke="#ddd" stroke-width="1"/>';
+    html += '<line x1="'+pad+'" y1="'+H+'" x2="'+(W+10)+'" y2="'+H+'" stroke="#ddd" stroke-width="1"/>';
+    html += bars + labels;
+    // Y axis labels
+    html += '<text x="'+(pad-4)+'" y="10" text-anchor="end" font-size="9" fill="#888">'+fmtRubShort(maxInc)+'</text>';
+    html += '<text x="'+(pad-4)+'" y="'+H+'" text-anchor="end" font-size="9" fill="#888">0</text>';
+    html += '</svg>';
+    html += '<div style="display:flex;gap:16px;font-size:11px;color:#888;margin-top:4px">';
+    html += '<span><span style="display:inline-block;width:10px;height:10px;background:#4f90cd;border-radius:2px;margin-right:4px"></span>Начислено</span>';
+    html += '<span><span style="display:inline-block;width:10px;height:10px;background:#4caf50;border-radius:2px;margin-right:4px"></span>К налогу</span>';
+    html += '</div></div>';
+  }
+
+  /* ── Диаграмма 2: Структура дохода (пирог) ── */
+  var typeMap = {};
+  S.incomes.forEach(function(i){
+    typeMap[i.type] = (typeMap[i.type] || 0) + i.amountRub;
+  });
+  var pieTypes = Object.keys(typeMap);
+  var total = Object.values(typeMap).reduce(function(s,v){ return s+v; }, 0);
+  if (pieTypes.length && total > 0) {
+    var PIE_COLORS = {salary:'#4caf50', bonus:'#ff9800', service:'#9e9e9e', interest:'#4f90cd'};
+    var cx = 80, cy = 80, radius = 65;
+    var startAngle = -Math.PI / 2;
+    var slices = '';
+    var legend = '';
+    pieTypes.forEach(function(type) {
+      var frac = typeMap[type] / total;
+      var sweep = frac * 2 * Math.PI;
+      var endAngle = startAngle + sweep;
+      var x1 = cx + radius * Math.cos(startAngle);
+      var y1 = cy + radius * Math.sin(startAngle);
+      var x2 = cx + radius * Math.cos(endAngle);
+      var y2 = cy + radius * Math.sin(endAngle);
+      var lg = sweep > Math.PI ? 1 : 0;
+      var col = PIE_COLORS[type] || '#aaa';
+      slices += '<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+radius+','+radius+' 0 '+lg+',1 '+x2+','+y2+' Z" fill="'+col+'" stroke="#fff" stroke-width="2"/>';
+      // Label in center of slice
+      var midA = startAngle + sweep/2;
+      if (frac > 0.07) {
+        var lx = cx + (radius*0.65)*Math.cos(midA);
+        var ly = cy + (radius*0.65)*Math.sin(midA);
+        slices += '<text x="'+lx.toFixed(1)+'" y="'+(ly+4).toFixed(1)+'" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">'+Math.round(frac*100)+'%</text>';
+      }
+      startAngle = endAngle;
+      legend += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;margin-bottom:3px">'+
+        '<span style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0"></span>'+
+        '<span>'+TYPE_LABEL[type]+'</span><span style="color:#888;margin-left:auto">'+fmtRubShort(typeMap[type])+'</span></div>';
+    });
+    html += '<div class="card" style="padding:14px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:8px">Структура доходов</div>';
+    html += '<div style="display:flex;align-items:center;gap:16px">';
+    html += '<svg width="160" height="160" viewBox="0 0 160 160">'+slices+'</svg>';
+    html += '<div style="flex:1">'+legend+'</div>';
+    html += '</div></div>';
+  }
+
+  html += '</div>'; // close 2-col grid
+
+  /* ── Диаграмма 3: Вычеты и налог (горизонтальный стек) ── */
+  if (r.totalIncome > 0) {
+    var W3 = 680, H3 = 48;
+    var toBase   = r.taxableGross;
+    var toDeduct = r.tripDeduct + r.expDeduct;
+    var toTax    = r.tax;
+    var toNet    = Math.max(0, r.totalIncome - r.serviceAmt - toDeduct - toTax);
+
+    var parts = [
+      { label: 'Служебные (не обл.)',  val: r.serviceAmt, col: '#9e9e9e' },
+      { label: 'Вычеты',              val: toDeduct,     col: '#ff9800' },
+      { label: 'Налог '+Math.round(r.tax/r.totalIncome*100)+'%', val: toTax, col: '#f44336' },
+      { label: 'Чистый доход',        val: toNet,        col: '#4caf50' },
+    ].filter(function(p){ return p.val > 0; });
+
+    var totalW = parts.reduce(function(s,p){ return s+p.val; }, 0);
+    var bars3 = '', legend3 = '';
+    var xPos = 0;
+    parts.forEach(function(p) {
+      var pw = Math.max(2, Math.round((p.val / totalW) * W3));
+      bars3 += '<rect x="'+xPos+'" y="0" width="'+pw+'" height="'+H3+'" fill="'+p.col+'" rx="0"/>';
+      if (pw > 40) {
+        bars3 += '<text x="'+(xPos+pw/2)+'" y="28" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">'+fmtRubShort(p.val)+'</text>';
+      }
+      xPos += pw;
+      legend3 += '<span style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap">'+
+        '<span style="width:10px;height:10px;border-radius:2px;background:'+p.col+'"></span>'+p.label+'</span>';
+    });
+
+    html += '<div class="card" style="padding:14px;margin-bottom:16px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:10px">Распределение дохода ';
+    html += '<span style="color:#888;font-weight:400">/ итого '+fmtRubShort(r.totalIncome)+'</span></div>';
+    html += '<svg width="100%" viewBox="0 0 '+W3+' '+H3+'" style="border-radius:6px;overflow:hidden">'+bars3+'</svg>';
+    html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">'+legend3+'</div>';
+    html += '</div>';
+  }
+
+  /* ── Диаграмма 4: Суточные и расходы по месяцам ── */
+  var monthlyDeduct = calcMonthlyBreakdown().filter(function(m){ return m.dailyAllow > 0 || m.expDeduct > 0; });
+  if (monthlyDeduct.length > 0) {
+    var maxD = Math.max.apply(null, monthlyDeduct.map(function(m){ return m.dailyAllow + m.expDeduct; })) || 1;
+    var WD = 340, HD = 140, padD = 36;
+    var bWD = Math.max(5, Math.floor((WD - padD - monthlyDeduct.length * 4) / (monthlyDeduct.length * 2)));
+    var barsD = '', labelsD = '';
+
+    monthlyDeduct.forEach(function(m, i) {
+      var mo = parseInt(m.ym.slice(5,7));
+      var x0 = padD + i * (bWD * 2 + 4);
+      var h1 = Math.round((m.dailyAllow / maxD) * (HD - 20));
+      var h2 = Math.round((m.expDeduct  / maxD) * (HD - 20));
+      barsD += '<rect x="'+x0+'" y="'+(HD-h1)+'" width="'+bWD+'" height="'+h1+'" fill="#ff9800" rx="2"/>';
+      barsD += '<rect x="'+(x0+bWD+1)+'" y="'+(HD-h2)+'" width="'+bWD+'" height="'+h2+'" fill="#9c27b0" rx="2"/>';
+      labelsD += '<text x="'+(x0+bWD)+'" y="'+(HD+14)+'" text-anchor="middle" font-size="9" fill="#888">'+MON[mo-1]+'</text>';
+    });
+
+    html += '<div style="display:grid;grid-template-columns:1fr;margin-bottom:16px">';
+    html += '<div class="card" style="padding:14px">';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:8px">Вычеты по месяцам</div>';
+    html += '<svg width="100%" viewBox="0 0 '+(WD+10)+' '+(HD+24)+'" style="overflow:visible">';
+    html += '<line x1="'+padD+'" y1="0" x2="'+padD+'" y2="'+HD+'" stroke="#ddd" stroke-width="1"/>';
+    html += '<line x1="'+padD+'" y1="'+HD+'" x2="'+(WD+10)+'" y2="'+HD+'" stroke="#ddd" stroke-width="1"/>';
+    html += barsD + labelsD;
+    html += '<text x="'+(padD-4)+'" y="10" text-anchor="end" font-size="9" fill="#888">'+fmtRubShort(maxD)+'</text>';
+    html += '</svg>';
+    html += '<div style="display:flex;gap:16px;font-size:11px;color:#888;margin-top:4px">';
+    html += '<span><span style="display:inline-block;width:10px;height:10px;background:#ff9800;border-radius:2px;margin-right:4px"></span>Суточные 2500×дн</span>';
+    html += '<span><span style="display:inline-block;width:10px;height:10px;background:#9c27b0;border-radius:2px;margin-right:4px"></span>Расходы</span>';
+    html += '</div></div></div>';
+  }
+
+  return html;
+}
+
+function renderMonthlyBreakdown() {
+  var data = calcMonthlyBreakdown();
+  if(!data.length) return '';
+  var hasData = data.some(function(m){ return m.incomes.length>0 || m.tripDays>0; });
+  if(!hasData) return '';
+
+  var MON=['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+  var html = '<div class="sec-hd" style="margin-top:24px">Помесячная разбивка (логика вычетов)</div>'+
+    '<div class="banner banner-blue" style="margin-bottom:12px;font-size:12px">'+
+    'Расходы (суточные + чеки) вычитаются последовательно из поступлений каждого месяца. '+
+    'Первый платёж уменьшается на всю сумму вычетов; остаток переходит к следующему.'+
+    '</div>';
+
+  data.forEach(function(m){
+    if(!m.incomes.length && !m.tripDays && !m.expDeduct) return;
+    var y=m.ym.slice(0,4), mo=parseInt(m.ym.slice(5,7));
+    var hasIncome = m.incomes.length>0;
+    html += '<div class="card" style="margin-bottom:10px;padding:12px 14px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+      '<span style="font-weight:600;font-size:14px">'+MON[mo-1]+' '+y+'</span>'+
+      (hasIncome ? '<span style="font-size:12px;color:var(--text2)">Облагаемый доход: '+fmtRub(m.netIncome)+'</span>' : '')+
+    '</div>';
+
+    // Доходы
+    if(m.incomes.length){
+      html += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px">';
+      html += '<tr style="color:var(--text2)"><td style="padding:2px 0;width:85px">Дата</td><td>Тип / описание</td><td style="text-align:right;width:110px">Сумма</td><td style="text-align:right;width:110px">Вычтено</td><td style="text-align:right;width:110px;font-weight:600;color:var(--text)">К налогу</td></tr>';
+      m.incomes.forEach(function(i){
+        var netCls = i.netRub < i.amountRub ? 'color:var(--orange)' : 'color:var(--green)';
+        html += '<tr style="border-top:.5px solid var(--border)">'+
+          '<td style="padding:4px 0">'+fmtDate(i.date)+'</td>'+
+          '<td><span class="pill '+TYPE_PILL[i.type]+'" style="font-size:10px">'+TYPE_LABEL[i.type]+'</span>'+(i.desc?' '+i.desc:'')+'</td>'+
+          '<td style="text-align:right">'+fmtNum(i.amount)+' '+i.currency+'<br><span style="color:var(--text2)">'+fmtRub(i.amountRub)+'</span></td>'+
+          '<td style="text-align:right;color:var(--red)">'+( i.deducted>0 ? '&minus; '+fmtRub(i.deducted) : '&mdash;' )+'</td>'+
+          '<td style="text-align:right;font-weight:600;'+netCls+'">'+fmtRub(i.netRub)+'</td>'+
+        '</tr>';
+      });
+      html += '</table>';
+    }
+
+    // Вычеты
+    if(m.totalDeduct>0){
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px">';
+      if(m.tripDays>0) html += '<span class="pill pill-orange">'+m.tripDays+' дн. &times; 2&nbsp;500&nbsp;&#8381; = '+fmtRub(m.dailyAllow)+'</span>';
+      if(m.expDeduct>0) html += '<span class="pill pill-gray">Расходы = '+fmtRub(m.expDeduct)+'</span>';
+      html += '<span class="pill pill-red">Итого вычеты: '+fmtRub(m.totalDeduct)+'</span>';
+      if(m.unusedDeduct>0) html += '<span class="pill pill-orange" title="Вычеты превысили доходы месяца">Не использовано: '+fmtRub(m.unusedDeduct)+'</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
+/* ── Заполняем выпадающий список командировок в форме расходов ── */
+function populateTripSelector() {
+  var sel = ge('e-trip');
+  if(!sel) return;
+  var MON=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  var curr = sel.value; // сохраняем текущий выбор
+  sel.innerHTML = '<option value="">— без привязки —</option>';
+  S.trips.slice().sort(function(a,b){ return b.start.localeCompare(a.start); })
+    .forEach(function(t){
+      var mo = parseInt(t.start.slice(5,7));
+      var lbl = (t.desc?t.desc+' · ':'')+fmtDate(t.start)+' – '+fmtDate(t.end)+' ('+t.days+' дн.)';
+      var opt = document.createElement('option');
+      opt.value = String(t.id); opt.textContent = lbl;
+      if(String(t.id)===curr) opt.selected=true;
+      sel.appendChild(opt);
+    });
+}
+
+// Хелперы
+function ge(id){ return document.getElementById(id); }
+function daysBetween(s,e){
+  return Math.round((new Date(e)-new Date(s))/86400000)+1;
+}
+function fmtNum(n){
+  return Number(n).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtRub(n){
+  return Number(n).toLocaleString('ru-RU',{minimumFractionDigits:0,maximumFractionDigits:0})+'\u202f\u20bd';
+}
+function fmtShort(n){
+  if(n>=1000000) return (n/1000000).toFixed(2).replace(/\.?0+$/,'')+' млн\u202f\u20bd';
+  if(n>=1000)    return (n/1000).toFixed(1).replace(/\.?0+$/,'')+' тыс\u202f\u20bd';
+  return Math.round(n)+'\u202f\u20bd';
+}
+function fmtDate(s){
+  var p=s.split('-');
+  var MNTH=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  return parseInt(p[2])+'\u202f'+MNTH[parseInt(p[1])-1]+'\u202f'+p[0];
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+var _tt;
+function toast(msg, type){
+  var t=ge('toast');
+  t.textContent=msg;
+  t.style.background = type==='warn'?'#92400e':type==='err'?'#7f1d1d':'#1a1a1a';
+  t.className='show';
+  if(_tt) clearTimeout(_tt);
+  _tt=setTimeout(function(){t.className=''; t.style.background='';}, type?4000:2500);
+}
+
+function deleteCommission(id){
+  S.commissions = S.commissions.filter(function(c){ return c.id !== id; });
+  save(); renderCommissions();
+}
+
+function renderCommissions(){
+  var wrap = ge('commission-list');
+  if(!wrap) return;
+  if(!S.commissions.length){
+    wrap.innerHTML='<div class="empty-st">Комиссии не загружены. Загрузите выписку Current — комиссии распознаются автоматически.</div>';
+    return;
+  }
+  var total    = S.commissions.reduce(function(s,c){ return s+c.amount;    },0);
+  var totalRub = S.commissions.reduce(function(s,c){ return s+c.amountRub; },0);
+  var sortedCom = S.commissions.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+  wrap.innerHTML =
+    '<div class="banner" style="background:var(--bg2);border:.5px solid var(--border);margin-bottom:10px">'+
+      'Всего комиссий: <strong>'+S.commissions.length+'</strong> · '+
+      fmtNum(total)+' EUR · '+fmtRub(totalRub)+
+    '</div>'+
+    sortedCom.map(function(c){
+      var noRate = !c.amountRub || c.amountRub <= 0;
+      var rateWarn = noRate ? '<span class="pill pill-red" style="font-size:10px">! нет курса</span> ' : '';
+      return '<div class="li">'+
+        '<span class="li-date">'+fmtDate(c.date)+'</span>'+
+        '<span class="li-main">'+rateWarn+escHtml(c.desc||'Комиссия банка')+'</span>'+
+        '<span class="li-amt">'+fmtNum(c.amount)+' '+c.currency+
+          '<small>'+fmtRub(c.amountRub)+'</small></span>'+
+        '<button class="li-del" onclick="deleteCommission('+c.id+')">&times;</button>'+
+      '</div>';
+    }).join('');
+}
+
+function renderAll(){
+  renderIncomes(); renderTrips(); renderExpenses(); renderTax(); renderCommissions();
+  populateTripSelector();
+}
+
+// Init
+load();
+var today = todayISO();
+['i-date','t-start','t-end','e-date'].forEach(function(id){
+  var el=ge(id); if(el) el.value=today;
+});
+if(S.hspb && ge('hspb')) ge('hspb').value=S.hspb;
+renderAll();
+</script>
+
+<!-- PDF МОДАЛЬНОЕ ОКНО -->
+<div class="modal-bg" id="pdf-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">&#128196; Найденные транзакции</span>
+      <button class="modal-close" onclick="closePdfModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="pdf-modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="importCheckedCandidates()">Добавить отмеченные</button>
+      <button class="btn btn-ghost" onclick="closePdfModal()">Отмена</button>
+      <span style="font-size:12px;color:var(--text2);margin-left:auto" id="pdf-sel-count"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PDF-ИМПОРТ: FREEDOM BANK CURRENT + DEPOSITE + FALLBACK
+═══════════════════════════════════════════════════════ */
+var pdfCandidates  = [];
+var pdfCommissions = [];
+
+function handlePdfUpload(event, mode) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var statusId = (mode === 'deposit') ? 'pdf-status-deposit' : 'pdf-status-current';
+  var statusEl = ge(statusId);
+  if (!statusEl) statusEl = ge('pdf-status-current');
+  statusEl.textContent = 'Читаю PDF...';
+
+  if (typeof pdfjsLib === 'undefined') {
+    var s1 = document.createElement('script');
+    s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s1.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      readPdf(file, statusEl, mode);
+    };
+    s1.onerror = function() {
+      statusEl.textContent = 'Ошибка загрузки PDF.js — проверьте интернет';
+    };
+    document.head.appendChild(s1);
+  } else {
+    readPdf(file, statusEl, mode);
+  }
+  event.target.value = '';
+}
+
+function readPdf(file, statusEl, mode) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var arrayBuffer = e.target.result;
+    pdfjsLib.getDocument({ data: arrayBuffer }).promise.then(function(pdf) {
+      var pageTexts = new Array(pdf.numPages);
+      var pagePromises = [];
+      for (var pn = 1; pn <= pdf.numPages; pn++) {
+        (function(pageNum) {
+          pagePromises.push(
+            pdf.getPage(pageNum).then(function(page) {
+              return page.getTextContent().then(function(content) {
+                var pt = '';
+                content.items.forEach(function(item) {
+                  pt += item.str;
+                  pt += item.hasEOL ? '\n' : ' ';
+                });
+                pageTexts[pageNum - 1] = pt;
+              });
+            })
+          );
+        })(pn);
+      }
+      Promise.all(pagePromises).then(function() {
+        var fullText = pageTexts.join('\n');
+        var parserName = '';
+        if (mode === 'deposit') {
+          pdfCandidates = parseFreedomDeposit(fullText);
+          pdfCommissions = [];
+          parserName = 'Freedom Deposite (проценты)';
+        } else if (/Фридом|FREEDOM\s*BANK|Freedom\s*Finance/i.test(fullText)) {
+          var parsed = parseFreedomBank(fullText);
+          pdfCandidates  = parsed.candidates;
+          pdfCommissions = parsed.commissions;
+          parserName = 'Freedom Current';
+        } else {
+          var lines = fullText.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+          pdfCandidates  = parseUniversal(lines);
+          pdfCommissions = [];
+          parserName = 'универсальный';
+        }
+        if (pdfCandidates.length === 0) {
+          statusEl.textContent = 'Транзакции не найдены (' + parserName + ') — добавьте вручную';
+        } else {
+          statusEl.textContent = '✓ Найдено: ' + pdfCandidates.length + ' транз. · ' + parserName;
+        }
+        renderPdfModal();
+        ge('pdf-modal').classList.add('show');
+      });
+    }).catch(function(err) {
+      statusEl.textContent = 'Ошибка: ' + err.message;
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ───── ПАРСЕР FREEDOM BANK (текстово-блочный) ──────────────────────
+   Логика (надёжная для годовых выписок):
+   1. Строим текст из PDF.js items с hasEOL — "2\n452.00" сохраняет перенос
+   2. Делим текст на блоки по дате DD.MM.YYYY
+   3. Ищем блоки с упоминанием Korber + IIN 100641009655
+   4. Сумму извлекаем между IBAN отправителя и маркером назначения платежа
+   5. Обрабатываем разбитые суммы: "2\n452.00" → 2452.00
+   6. PAYROLL → Зарплата, REISEVORSCHUSS/AVIS → Командировочные,
+      AUSLAGE/HEALTH/SAFETY/MEDICAL → Служебные (необлагаемые)
+──────────────────────────────────────────────────────────────────── */
+function parseFreedomBank(fullText) {
+  var currM    = fullText.match(/Валюта:\s*([A-Z]{3})/i);
+  var currency = currM ? currM[1].toUpperCase() : 'EUR';
+
+  /* ── Шаг 1: разбивка на блоки по дате DD.MM.YYYY ─────────────── */
+  var blockRe   = /(?:^|\n)(\d{2})\.(\d{2})\.(\d{4})[\s\n]/gm;
+  var positions = [];
+  var m;
+  while ((m = blockRe.exec(fullText)) !== null) {
+    positions.push({ idx: m.index, dd: m[1], mm: m[2], yyyy: m[3] });
+  }
+  if (!positions.length) return { candidates: [], commissions: [] };
+
+  var blocks = [];
+  for (var i = 0; i < positions.length; i++) {
+    var s = positions[i].idx;
+    var e = (i + 1 < positions.length) ? positions[i + 1].idx : fullText.length;
+    blocks.push({ dd: positions[i].dd, mm: positions[i].mm, yyyy: positions[i].yyyy,
+                  text: fullText.slice(s, e) });
+  }
+
+  /* ── Шаг 2: константы форматов Korber ────────────────────────────
+     2025: KSNVKZKA · IIN 100641009655 · IBAN KZ26551A124000002EUR
+     2026: COBADEHH (Commerzbank) · без IIN · IBAN DE50200400000122900400 ── */
+  var KORBER_IIN     = '100641009655';
+  var KORBER_IBAN    = 'KZ26551A124000002EUR';
+  var KORBER_DE_IBAN = 'DE50200400000122900400';
+  var PAY_MARKERS    = ['/RG/','/AVIS/','/ROC/','/MEMO/','PAYROLL',
+                        'REISEVORSCHUSS','REISEVORSCHUS','AUSLAGE',
+                        'HEALTH INSUR','SAFETY SHOES','MEDICAL','NACH '];
+
+  var candidates  = [];
+  var commissions = [];
+  var seen        = {};
+
+  blocks.forEach(function(b) {
+    var text    = b.text;
+    var isoDate = b.yyyy + '-' + b.mm + '-' + b.dd;
+
+    /* ① Комиссии «Зачисление средств на счёт клиента» */
+    if (/Комиссия за операцию/i.test(text) && /Зачисление\s+средств/i.test(text)) {
+      var comDocM = text.match(/^\s*\d{2}\.\d{2}\.\d{4}\s+(\d{1,10})\b/);
+      var comDoc  = comDocM ? comDocM[1] : '';
+      var comKey  = isoDate + '_com_' + comDoc;
+      if (!seen[comKey]) {
+        seen[comKey] = true;
+        var comPos    = text.search(/Комиссия за операцию/i);
+        var beforeCom = text.slice(0, comPos);
+        var amtM2     = beforeCom.match(/(\d+(?:\.\d{2})?)[\s\n]*$/);
+        var comAmt    = amtM2 ? parseFloat(amtM2[1]) : 0;
+        if (!comAmt) {
+          var fb = beforeCom.match(/\b(\d+\.\d{2})\b/g);
+          if (fb) comAmt = parseFloat(fb[fb.length - 1]);
+        }
+        if (comAmt > 0) {
+          var dM = text.match(/Комиссия за операцию[^\n.]+(?:\.[^\n]*)?/i);
+          commissions.push({
+            id: Date.now() + Math.random(),
+            date: isoDate, currency: currency,
+            amount: Math.round(comAmt * 100) / 100, amountRub: 0,
+            desc: (dM ? dM[0] : 'Комиссия за операцию').replace(/\s+/g,' ').trim().slice(0,180),
+            needsRate: true
+          });
+        }
+      }
+      return;
+    }
+
+    /* ② Фильтр Korber (имя обязательно, плюс хотя бы один идентификатор) */
+    if (!/korber/i.test(text)) return;
+    var hasKZIban = text.indexOf(KORBER_IBAN)    >= 0;
+    var hasDeIban = text.indexOf(KORBER_DE_IBAN) >= 0;
+    var hasIIN    = text.indexOf(KORBER_IIN)     >= 0;
+    if (!hasKZIban && !hasDeIban && !hasIIN) return;
+
+    /* ③ Тип платежа по ключевым словам */
+    var type = 'salary';
+    if      (/REISEVORSCHUSS|REISEVORSCHUS|REISEVORAUSZAHLUNG/i.test(text)) type = 'bonus';
+    else if (/\/AVIS\//i.test(text))                                         type = 'bonus';
+    else if (/\/RG\/8946\d{6,}|RA\s+8946\d{6,}/i.test(text))              type = 'bonus';
+    else if (/\bBIS\b/i.test(text) && /\/RG\//i.test(text))               type = 'bonus';
+    else if (/AUSLAGE|HEALTH\s*INSUR|SAFETY\s*SHOES|MEDICAL\s*INSP/i.test(text)) type = 'service';
+    else if (/PAYROLL/i.test(text))                                          type = 'salary';
+
+    /* ④ Сумма: ищем после IBAN Korber (по приоритету форматов) */
+    var afterIban = text;
+    if (hasKZIban)      afterIban = text.slice(text.indexOf(KORBER_IBAN)    + KORBER_IBAN.length);
+    else if (hasDeIban) afterIban = text.slice(text.indexOf(KORBER_DE_IBAN) + KORBER_DE_IBAN.length);
+    else if (hasIIN)    afterIban = text.slice(text.indexOf(KORBER_IIN)     + KORBER_IIN.length);
+
+    var truncAt = afterIban.length;
+    PAY_MARKERS.forEach(function(pm) {
+      var pi = afterIban.toUpperCase().indexOf(pm.toUpperCase());
+      if (pi >= 0 && pi < truncAt) truncAt = pi;
+    });
+    var amtText = afterIban.slice(0, truncAt).trim();
+
+    var amount = 0;
+    var sM = amtText.match(/\b(\d{1,3})\s*[\n\r]+\s*(\d{3}\.\d{2})\b/);
+    if (sM) amount = parseFloat(sM[1] + sM[2]);
+    if (!amount) { var spM = amtText.match(/\b(\d{1,3})\s(\d{3}\.\d{2})\b/);
+                   if (spM) amount = parseFloat(spM[1] + spM[2]); }
+    if (!amount) { var siM = amtText.match(/\b(\d+\.\d{2})\b/);
+                   if (siM) amount = parseFloat(siM[1]); }
+    if (!amount || amount < 1) {
+      var allN = [], nr2, nRe = /\b(\d{1,3}(?:[\s\u00A0]\d{3})*[.,]\d{2})\b/g;
+      while ((nr2 = nRe.exec(text)) !== null) {
+        var nv = parseFloat(nr2[1].replace(/[\s\u00A0]/g,'').replace(',','.'));
+        if (!isNaN(nv) && nv > 50) allN.push(nv);
+      }
+      if (allN.length) amount = Math.max.apply(null, allN);
+    }
+    if (!amount || amount < 1 || isNaN(amount)) return;
+
+    /* ⑤ Дедупликация по doc-номеру (уникален для каждой транзакции) */
+    var dnM    = text.match(/^\s*\d{2}\.\d{2}\.\d{4}\s+(\d{4,10})\b/);
+    var docNum = dnM ? dnM[1] : '';
+    var key    = docNum ? (isoDate + '_' + docNum) : (isoDate + ':' + Math.round(amount * 100));
+    if (seen[key]) return;
+    seen[key] = true;
+
+    /* ⑥ Бенефициар: текст между BIC и первым идентификатором */
+    var beneficiary = '';
+    var bicIdx = text.search(/KSNVKZKA|COBADEHH/i);
+    if (bicIdx >= 0) {
+      var afterBic = text.slice(bicIdx + 8);
+      var stopM2 = afterBic.match(/\b\d{12}\b|\bDE\d{2}[A-Z0-9]{16,}\b|\bKZ\d{2}[A-Z0-9]+EUR\b/);
+      if (stopM2) {
+        var benRaw = afterBic.slice(0, stopM2.index)
+          .replace(/[A-Z]{2}\d{2}[A-Z0-9]{15,}/g,'').replace(/\s+/g,' ').trim();
+        benRaw = benRaw.replace(/\s+\d{5}.*$/,'').replace(/,\s+\d{5}.*$/,'').trim();
+        benRaw = benRaw.replace(/\s+(?:DE|US|GB|RU|KZ|FR|CH|AT|NL|BE),?\s*$/i,'').trim();
+        beneficiary = benRaw.slice(0, 60);
+      }
+    }
+    if (!beneficiary) beneficiary = 'KORBER TECHNOLOGIES GMBH';
+
+    /* ⑦ Назначение платежа */
+    var purpose = '';
+    var purM = text.match(/\/RG\/[^\n]*|\/ROC\/[^\n]*/);
+    if (purM) {
+      purpose = purM[0];
+      var pTail = text.slice(text.indexOf(purM[0]) + purM[0].length);
+      var cntM  = pTail.match(/^\s*([A-Z]{1,6}\s+\d{4})/);
+      if (cntM) purpose += ' ' + cntM[1].trim();
+      purpose = purpose.replace(/\s+/g,' ').trim().slice(0, 120);
+    }
+
+    candidates.push({
+      checked: true, date: isoDate,
+      amount: Math.round(amount * 100) / 100, currency: currency,
+      type: type,
+      desc: text.replace(/\s+/g,' ').trim().slice(0, 100),
+      beneficiary: beneficiary, purpose: purpose
+    });
+  });
+
+  return { candidates: candidates, commissions: commissions };
+}
+
+/* ───── ПАРСЕР FREEDOM BANK DEPOSITE (проценты по вкладу) ────────
+   Логика:
+   1. Делим текст на блоки по дате
+   2. Ищем блоки, содержащие "Выплата процентов"
+   3. Бенефициар: между BIC (KSNVKZKA) и ИИН клиента (12 цифр)
+   4. Назначение платежа: фраза "Выплата процентов по вкладу № ... от ... за период ..."
+   5. Сумма: число после счёта зачисления
+─────────────────────────────────────────────────────────────────── */
+function parseFreedomDeposit(fullText) {
+  // Валюта счёта из шапки
+  var currM = fullText.match(/Валюта:\s*([A-Z]{3})/i);
+  var currency = currM ? currM[1].toUpperCase() : 'EUR';
+
+  // Шаг 1: разбиваем на блоки по дате DD.MM.YYYY
+  var blockRe = /(?:^|\n)(\d{2})\.(\d{2})\.(\d{4})[\s\n]/gm;
+  var positions = [];
+  var m;
+  while ((m = blockRe.exec(fullText)) !== null) {
+    positions.push({ idx: m.index, dd: m[1], mm: m[2], yyyy: m[3] });
+  }
+  if (!positions.length) return [];
+
+  var blocks = [];
+  for (var i = 0; i < positions.length; i++) {
+    var start = positions[i].idx;
+    var end   = (i + 1 < positions.length) ? positions[i + 1].idx : fullText.length;
+    blocks.push({
+      dd: positions[i].dd, mm: positions[i].mm, yyyy: positions[i].yyyy,
+      text: fullText.slice(start, end)
+    });
+  }
+
+  var candidates = [];
+  var seen = {};
+
+  blocks.forEach(function(b) {
+    var text = b.text;
+
+    // Должен содержать "Выплата процентов" — это ключевой маркер
+    if (!/Выплата\s+процентов/i.test(text)) return;
+
+    // Бенефициар: между KSNVKZKA и 12-значным ИИН
+    var beneficiary = '';
+    var bicPos = text.indexOf('KSNVKZKA');
+    if (bicPos >= 0) {
+      var afterBic = text.slice(bicPos + 8);
+      var iinM = afterBic.match(/\b\d{12}\b/);
+      if (iinM) {
+        var benRaw = afterBic.slice(0, iinM.index);
+        benRaw = benRaw.replace(/\s+/g, ' ').trim();
+        beneficiary = benRaw.slice(0, 60);
+      }
+    }
+    if (!beneficiary) beneficiary = 'Клиент банка';
+
+    // Извлекаем сумму: ищем после KZ-номера счёта (KZ\d{2}...EUR) — после него идёт число
+    // Деп-счёт обычно KZ70551B429205330EUR или похожий
+    var amount = 0;
+    var afterAcc = text;
+    var accM = text.match(/\bKZ\d{2}[A-Z0-9]+EUR\b\s*([\d\s\n.,]+?)\s*(?:Выплата|$)/);
+    if (accM) {
+      var rawAmt = accM[1].replace(/[\s\n\r]+/g, ' ').trim();
+      // Берём первое число с двумя знаками после точки
+      var amtM = rawAmt.match(/(\d{1,3}(?:[\s\u00A0]\d{3})*[.,]\d{2})/);
+      if (amtM) {
+        amount = parseFloat(amtM[1].replace(/[\s\u00A0]/g, '').replace(',', '.'));
+      }
+    }
+
+    // Fallback: берём наибольшее число <100 в блоке (проценты обычно мелкие)
+    if (!amount) {
+      var smallNums = [];
+      var nr; var numRe = /\b(\d{1,3}(?:[\s\u00A0]\d{3})*[.,]\d{2})\b/g;
+      while ((nr = numRe.exec(text)) !== null) {
+        var n = parseFloat(nr[1].replace(/[\s\u00A0]/g, '').replace(',', '.'));
+        if (!isNaN(n) && n > 0 && n < 1000) smallNums.push(n);
+      }
+      if (smallNums.length) amount = smallNums[0];
+    }
+
+    if (!amount || amount <= 0 || isNaN(amount)) return;
+
+    // Назначение платежа: "Выплата процентов по вкладу № ... от ... за период ..."
+    var purpose = '';
+    var purposeM = text.match(/Выплата\s+процентов[\s\S]*?(?=Вкладчик|$)/i);
+    if (purposeM) {
+      purpose = purposeM[0].replace(/\s+/g, ' ').trim().slice(0, 150);
+    } else {
+      purpose = 'Выплата процентов по вкладу';
+    }
+
+    var isoDate = b.yyyy + '-' + b.mm + '-' + b.dd;
+    var key = isoDate + ':' + Math.round(amount * 100);
+    if (seen[key]) return;
+    seen[key] = true;
+
+    candidates.push({
+      checked: true,
+      date: isoDate,
+      amount: Math.round(amount * 100) / 100,
+      currency: currency,
+      type: 'interest',
+      desc: text.replace(/\s+/g, ' ').trim().slice(0, 100),
+      beneficiary: beneficiary,
+      purpose: purpose
+    });
+  });
+
+  return candidates;
+}
+
+/* ───── УНИВЕРСАЛЬНЫЙ ПАРСЕР (fallback) ──────────────────────── */
+function parseUniversal(lines) {
+  var candidates = [];
+  var dateRe = /\b(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{2,4})\b/;
+  var amtRe  = /\b(\d{1,3}(?:[\s\u00A0]\d{3})*[.,]\d{2})\b/g;
+  var currRe = /\b(EUR|USD|AED|KZT|GBP|RUB)\b/;
+
+  lines.forEach(function(line) {
+    var dm = line.match(dateRe); if (!dm) return;
+    var dd = dm[1].padStart(2,'0'), mm = dm[2].padStart(2,'0');
+    var yyyy = dm[3].length===2 ? '20'+dm[3] : dm[3];
+    if (parseInt(mm)>12||parseInt(dd)>31) return;
+
+    var amounts = [];
+    var m; amtRe.lastIndex = 0;
+    while ((m = amtRe.exec(line)) !== null) {
+      amounts.push(parseFloat(m[1].replace(/[\s\u00A0]/g,'').replace(',','.')));
+    }
+    if (!amounts.length) return;
+    var amount = Math.max.apply(null, amounts);
+    if (amount < 10) return;
+
+    var cm = line.match(currRe);
+    var currency = cm ? cm[1] : 'RUB';
+
+    candidates.push({
+      checked: true,
+      date: yyyy+'-'+mm+'-'+dd,
+      amount: amount,
+      currency: currency,
+      type: 'salary',
+      desc: line.length > 100 ? line.slice(0,100)+'...' : line
+    });
+  });
+  return candidates.slice(0, 100);
+}
+
+/* ───── МОДАЛЬНОЕ ОКНО ──────────────────────────────────────── */
+function renderPdfModal() {
+  var body = ge('pdf-modal-body');
+  if (!pdfCandidates.length) {
+    body.innerHTML = '<div class="empty-st">Транзакции не найдены. Проверьте формат выписки или добавьте доходы вручную.</div>';
+    updateSelCount(); return;
+  }
+  // Шапка таблицы
+  var html = '<div style="display:flex;gap:8px;padding:0 10px 6px;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">' +
+    '<span style="width:16px"></span>' +
+    '<span style="width:110px">Дата</span>' +
+    '<span style="width:90px">Сумма</span>' +
+    '<span style="width:130px">Тип</span>' +
+    '<span style="flex:1">Бенефициар · Назначение</span></div>';
+  html += pdfCandidates.map(function(c, i) {
+    var ben  = c.beneficiary || '';
+    var purp = c.purpose     || c.desc || '';
+    var info = (ben ? '<strong style="color:var(--text)">' + escHtml(ben) + '</strong>' : '') +
+               (ben && purp ? ' · ' : '') +
+               (purp ? escHtml(purp.slice(0,80)) : '');
+    var fullTip = (ben + ' · ' + purp).slice(0, 250);
+    return '<div class="cand-row">' +
+      '<input class="cand-check" type="checkbox"' + (c.checked?' checked':'') +
+        ' onchange="pdfCandidates['+i+'].checked=this.checked;updateSelCount()"> ' +
+      '<input class="cand-date" type="date" value="'+c.date+
+        '" onchange="pdfCandidates['+i+'].date=this.value" style="width:110px"> ' +
+      '<input class="cand-amt" type="number" value="'+c.amount+
+        '" onchange="pdfCandidates['+i+'].amount=parseFloat(this.value)||0" style="width:90px"> ' +
+      '<select class="cand-type" onchange="pdfCandidates['+i+'].type=this.value">' +
+        '<option value="salary"'   +(c.type==='salary'  ?' selected':'')+'>Зарплата</option>' +
+        '<option value="bonus"'    +(c.type==='bonus'   ?' selected':'')+'>Ауслёзунг</option>' +
+        '<option value="interest"' +(c.type==='interest'?' selected':'')+'>Проценты</option>' +
+        '<option value="service"'  +(c.type==='service' ?' selected':'')+'>Служебные</option>' +
+      '</select> ' +
+      '<span class="cand-desc" title="'+escHtml(fullTip)+'">' + info + '</span>' +
+      '</div>';
+  }).join('');
+  body.innerHTML = html;
+  updateSelCount();
+}
+
+function updateSelCount() {
+  var n = pdfCandidates.filter(function(c){return c.checked;}).length;
+  var el = ge('pdf-sel-count');
+  if (el) el.textContent = 'Выбрано: '+n+' из '+pdfCandidates.length;
+}
+
+function closePdfModal() {
+  ge('pdf-modal').classList.remove('show');
+}
+
+async function importCheckedCandidates() {
+  var checked = pdfCandidates.filter(function(c){return c.checked;});
+  if (!checked.length) { toast('Ничего не выбрано'); return; }
+
+  closePdfModal();
+  toast('Добавляю и загружаю курсы ЦБ...');
+
+  var added = 0, updated = 0;
+  var ids = [];
+
+  for (var ci = 0; ci < checked.length; ci++) {
+    var c = checked[ci];
+    if (!c.amount || c.amount <= 0) continue;
+    var isRub = c.currency === 'RUB';
+    var rec = {
+      id: Date.now() + Math.random(), date: c.date, currency: c.currency,
+      amount: c.amount, rate: isRub ? 1 : 0,
+      amountRub: isRub ? c.amount : 0,
+      type: c.type,
+      desc: (c.desc || '').slice(0, 80),
+      beneficiary: c.beneficiary || '',
+      purpose:     c.purpose     || '',
+      needsRate: !isRub
+    };
+
+    // ── Деdup: ищем существующую запись с той же датой + суммой + валютой ──
+    var existIdx = -1;
+    for (var ei = 0; ei < S.incomes.length; ei++) {
+      var ex = S.incomes[ei];
+      if (ex.date === rec.date && ex.currency === rec.currency &&
+          Math.abs(ex.amount - rec.amount) < 0.01) { existIdx = ei; break; }
+    }
+    if (existIdx >= 0) {
+      // Дубль найден. Если у нового есть beneficiary, а у старого нет — обновляем
+      var existRec = S.incomes[existIdx];
+      if (rec.beneficiary && !existRec.beneficiary) {
+        existRec.beneficiary = rec.beneficiary;
+        existRec.purpose     = rec.purpose;
+        updated++;
+      }
+      continue; // не добавляем дубль
+    }
+
+    ids.push(rec.id);
+    S.incomes.push(rec);
+    added++;
+  }
+
+  S.incomes.sort(function(a,b){return a.date.localeCompare(b.date);});
+  // Тихая авто-очистка любых дублей (на случай старых записей в localStorage)
+  var autoRemoved = dedupIncomesSilent();
+  // Комиссии — автоматически, без подтверждения пользователем
+  var addedCom = 0;
+  if (pdfCommissions && pdfCommissions.length) {
+    pdfCommissions.forEach(function(c) {
+      var already = S.commissions.some(function(x){ return x.date===c.date && Math.abs(x.amount-c.amount)<0.01; });
+      if (!already) { c.id = Date.now() + Math.random(); S.commissions.push(c); addedCom++; }
+    });
+    S.commissions.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  }
+  save(); renderAll();
+
+  // Асинхронно загружаем курсы ЦБ для каждой записи
+  var fetched = 0, failed = 0;
+  for (var j = 0; j < S.incomes.length; j++) {
+    var inc = S.incomes[j];
+    if (!inc.needsRate || !ids.includes(inc.id)) continue;
+    try {
+      var rate = await getRateForDate(inc.date, inc.currency);
+      if (rate > 0) {
+        inc.rate = rate;
+        inc.amountRub = Math.round(inc.amount * rate * 100) / 100;
+        inc.needsRate = false;
+        fetched++;
+      } else { failed++; }
+    } catch(e) { failed++; }
+    save(); renderAll(); // обновляем после каждой
+  }
+
+  var msg = 'Добавлено: ' + added;
+  if (updated > 0)     msg += ' · обновлено: ' + updated;
+  if (autoRemoved > 0) msg += ' · удалено дублей: ' + autoRemoved;
+  if (added === 0 && updated === 0 && autoRemoved === 0) msg = 'Все записи уже есть в списке';
+  msg += ', курсов ЦБ: ' + fetched;
+  if (failed > 0) msg += ' (не найдено: ' + failed + ')';
+  if (addedCom > 0) msg += ' · Комиссий: ' + addedCom;
+  toast(msg);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+</body>
+</html>
