@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commerzbank exchange rate</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:24px 16px;min-height:100vh;}
+.wrap{max-width:900px;margin:0 auto;padding:1rem 0;}
+
+/* NAV (identical to other tools) */
+.nav-bar{display:flex;align-items:center;gap:6px;margin-bottom:18px;flex-wrap:wrap;padding-bottom:14px;border-bottom:.5px solid rgba(0,0,0,0.1);}
+.nav-link{font-size:12px;font-weight:500;color:#555;text-decoration:none;border:.5px solid rgba(0,0,0,0.15);padding:5px 12px;border-radius:100px;background:#fff;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;display:inline-flex;align-items:center;gap:4px;}
+.nav-link:hover{background:#ebebea;color:#1a1a1a;}
+.nav-link.nav-active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+@media(max-width:560px){.nav-bar{gap:4px;}.nav-link{font-size:11px;padding:4px 10px;}}
+
+/* HEADER */
+.tool-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:22px;padding-bottom:18px;border-bottom:.5px solid rgba(0,0,0,0.1);}
+.tool-hdr-icon{font-size:26px;margin-top:2px;flex-shrink:0;}
+.tool-hdr-title{font-size:20px;font-weight:600;letter-spacing:-0.02em;}
+.tool-hdr-sub{font-size:13px;color:#777;margin-top:3px;line-height:1.5;}
+
+/* FORM */
+.panel{background:#fff;border:.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:18px;margin-bottom:18px;}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.fgrp{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px;}
+.flbl{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:0.05em;}
+input[type=date],input[type=text],select{border:.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:9px 11px;font:inherit;background:#fff;color:#1a1a1a;font-size:14px;cursor:pointer;width:100%;}
+input[type=text]{cursor:text;}
+input[type=date]:focus,input[type=text]:focus,select:focus{outline:none;border-color:rgba(0,0,0,0.45);}
+.btn{border:.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:9px 20px;font:inherit;background:#1a1a1a;color:#fff;cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap;}
+.btn:hover{background:#000;}
+.btn:disabled{opacity:.5;cursor:default;}
+.btn-sec{background:#fff;color:#1a1a1a;}
+.btn-sec:hover{background:#ebebea;}
+.quick-dates{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.chip{font-size:12px;color:#555;border:.5px solid rgba(0,0,0,0.15);padding:4px 11px;border-radius:100px;background:#fff;cursor:pointer;}
+.chip:hover{background:#ebebea;color:#1a1a1a;}
+
+/* RESULT */
+.result{display:none;}
+.res-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.res-cur{font-size:22px;font-weight:600;}
+.res-cur span{color:#777;font-weight:400;font-size:15px;}
+.res-date{font-size:12px;color:#777;}
+.big-rate{background:#1a1a1a;color:#fff;border-radius:12px;padding:22px 20px;margin-bottom:14px;}
+.big-rate .lbl{font-size:12px;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.big-rate .val{font-size:34px;font-weight:600;line-height:1.1;letter-spacing:-0.01em;}
+.big-rate .inv{font-size:13px;color:rgba(255,255,255,.7);margin-top:8px;}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.metric{background:#ebebea;border-radius:10px;padding:14px 12px;}
+.m-lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.m-val{font-size:22px;font-weight:500;line-height:1;}
+@media(max-width:560px){.metrics{grid-template-columns:1fr;}.big-rate .val{font-size:28px;}}
+.copy-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.copy-out{flex:1;min-width:220px;font-size:12.5px;color:#444;background:#f5f5f3;border:.5px solid rgba(0,0,0,0.1);border-radius:8px;padding:9px 11px;font-family:'JetBrains Mono',ui-monospace,monospace;}
+.copy-ok{font-size:12px;color:#0F6E56;opacity:0;transition:opacity .3s;}
+
+/* STATUS */
+.status{font-size:13px;padding:11px 14px;border-radius:9px;margin-bottom:14px;display:none;line-height:1.5;}
+.status.show{display:block;}
+.status.loading{background:#eef2f7;color:#1a5a8c;border:.5px solid #cdddf0;}
+.status.err{background:#fdeaea;color:#A32D2D;border:.5px solid #f3c9c9;}
+.status.warn{background:#fef4e0;color:#8a5712;border:.5px solid #f0dcae;}
+
+.note{font-size:11.5px;color:#999;line-height:1.6;margin-top:6px;}
+.note a{color:#777;}
+
+/* ROWS (currency + date per line) */
+.qrow-head{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+.qrow-head span{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.05em;}
+.qh-cur{width:360px;}
+.qh-hint{text-transform:none;letter-spacing:0;color:#bbb;}
+.qh-date{width:170px;}
+.qh-rm{width:38px;flex-shrink:0;}
+.qrow{display:flex;gap:10px;align-items:center;margin-bottom:10px;}
+.qrow .combo{width:360px;flex:0 0 auto;}
+.qrow .row-date{width:170px;flex:0 0 auto;}
+.qrow .rm-row{flex-shrink:0;width:38px;height:40px;border:.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#999;cursor:pointer;font-size:18px;line-height:1;padding:0;}
+.qrow .rm-row:hover{background:#fdeaea;color:#A32D2D;border-color:#f3c9c9;}
+@media(max-width:560px){
+  .qrow-head{display:none;}
+  .qrow{flex-wrap:wrap;padding:10px;border:.5px solid rgba(0,0,0,0.1);border-radius:10px;}
+  .qrow .combo,.qrow .row-date{min-width:100%;width:100%;}
+  .qrow .rm-row{width:100%;}
+}
+
+/* COMBO (searchable currency picker) */
+.combo{position:relative;}
+.qrow .combo-box{min-height:40px;}
+.combo-box{border:.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;padding:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:42px;}
+.combo-box:focus-within{border-color:rgba(0,0,0,0.45);}
+.combo-box input{border:none;outline:none;flex:1;min-width:160px;font:inherit;font-size:14px;background:none;padding:4px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.tag{display:inline-flex;align-items:center;gap:6px;background:#1a1a1a;color:#fff;border-radius:7px;padding:4px 6px 4px 10px;font-size:13px;font-weight:500;}
+.tag .x{cursor:pointer;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:rgba(255,255,255,.7);font-size:14px;}
+.tag .x:hover{background:rgba(255,255,255,.2);color:#fff;}
+.tag.date-tag{background:#ebebea;color:#1a1a1a;}
+.tag.date-tag .x{color:#999;}
+.tag.date-tag .x:hover{background:rgba(0,0,0,.1);color:#1a1a1a;}
+.dropdown{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:.5px solid rgba(0,0,0,0.18);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,0.12);max-height:280px;overflow-y:auto;z-index:30;display:none;}
+.dropdown.show{display:block;}
+.dd-grouplbl{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.05em;padding:8px 12px 4px;position:sticky;top:0;background:#fff;}
+.dd-item{padding:8px 12px;font-size:13.5px;cursor:pointer;display:flex;gap:8px;align-items:baseline;}
+.dd-item:hover,.dd-item.active{background:#f0f0ee;}
+.dd-item .code{font-weight:600;min-width:42px;}
+.dd-item .cty{color:#777;}
+.dd-empty{padding:12px;font-size:13px;color:#999;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;border:.5px solid rgba(0,0,0,0.1);border-radius:10px;}
+table.rate-tbl{border-collapse:collapse;width:100%;font-size:13px;min-width:520px;}
+.rate-tbl th,.rate-tbl td{padding:9px 12px;text-align:left;border-bottom:.5px solid rgba(0,0,0,0.08);white-space:nowrap;}
+.rate-tbl th{background:#1a1a1a;color:#fff;font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;}
+.rate-tbl tr:last-child td{border-bottom:none;}
+.rate-tbl td.num{font-family:'JetBrains Mono',ui-monospace,monospace;}
+.rate-tbl td.main{font-weight:600;}
+.rate-tbl tr:hover td{background:#f7f7f5;}
+.rate-tbl .code{font-weight:600;}
+.rate-tbl .nd{color:#A32D2D;}
+.rate-tbl tbody tr.date-sep td{border-top:1.5px solid rgba(0,0,0,0.14);}
+
+/* manual fallback */
+.drop{margin-top:14px;border:1px dashed rgba(0,0,0,0.22);border-radius:10px;padding:14px;text-align:center;font-size:12.5px;color:#777;background:#fafafa;cursor:pointer;}
+.drop.over{background:#ebf3ec;border-color:#0F6E56;color:#0F6E56;}
+.foot{font-size:11px;color:#aaa;text-align:center;margin-top:26px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- NAV -->
+  <div class="nav-bar">
+    <a class="nav-link" href="index.html">⌂ Home</a>
+    <a class="nav-link" href="visa_days_calc.html">📅 90/180 Days</a>
+    <a class="nav-link" href="trip-tracker.html">🛫 Residency</a>
+    <a class="nav-link" href="ndfl3.html">📋 3-NDFL</a>
+    <a class="nav-link nav-active" href="#">💶 Commerzbank rate</a>
+  </div>
+
+  <!-- HEADER -->
+  <div class="tool-hdr">
+    <div class="tool-hdr-icon">💶</div>
+    <div>
+      <div class="tool-hdr-title">Commerzbank exchange rate</div>
+      <div class="tool-hdr-sub">Exchange rate of the selected currency against the euro, from the official Commerzbank Daily FX Fixing Rates. Pick a date and a currency — for business-trip reports.</div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="panel">
+    <div class="qrow-head">
+      <span class="qh-cur">Currency <span class="qh-hint">— code or country</span></span>
+      <span class="qh-date">Date</span>
+      <span class="qh-rm"></span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+      <div id="rows"></div>
+      <button class="btn btn-sec" id="addRow">+ Add row</button>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="btn" id="go">Show rates</button>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status" id="status"></div>
+
+  <!-- RESULT -->
+  <div class="panel result" id="result">
+    <div class="res-head">
+      <div class="res-cur" id="resTitle"></div>
+    </div>
+
+    <!-- single lookup view -->
+    <div id="singleView" style="display:none;">
+      <div class="res-date" id="resDate" style="margin-bottom:12px;"></div>
+      <div class="big-rate">
+        <div class="lbl" id="bigLbl">Rate vs euro (Middle rate)</div>
+        <div class="val" id="bigVal"></div>
+        <div class="inv" id="bigInv"></div>
+      </div>
+      <div class="metrics">
+        <div class="metric"><div class="m-lbl">Middle rate</div><div class="m-val" id="mMid"></div></div>
+        <div class="metric"><div class="m-lbl">Bid (buy)</div><div class="m-val" id="mBid"></div></div>
+        <div class="metric"><div class="m-lbl">Offer (sell)</div><div class="m-val" id="mOff"></div></div>
+      </div>
+    </div>
+
+    <!-- table view (multi) -->
+    <div id="tableView" class="tbl-wrap" style="display:none;">
+      <table class="rate-tbl" id="rateTbl"></table>
+    </div>
+
+    <div class="note" id="resNote"></div>
+  </div>
+
+  <div class="foot">Source: Commerzbank Daily FX Fixing Rates · all rates quoted against EUR · HAPM tool</div>
+</div>
+
+<script>
+/* ===== Currency list (from Commerzbank FX Market + Additional Currencies) ===== */
+const CURRENCIES=[{c:"USD",n:"USA",g:"m"},{c:"GBP",n:"Great Britain",g:"m"},{c:"JPY",n:"Japan",g:"m"},{c:"CHF",n:"Switzerland",g:"m"},{c:"CAD",n:"Canada",g:"m"},{c:"AUD",n:"Australia",g:"m"},{c:"NZD",n:"New Zealand",g:"m"},{c:"SEK",n:"Sweden",g:"m"},{c:"NOK",n:"Norway",g:"m"},{c:"DKK",n:"Denmark",g:"m"},{c:"AED",n:"United Arab Emirates",g:"m"},{c:"BHD",n:"Bahrain",g:"m"},{c:"CNH",n:"People's Republic of China (offshore)",g:"m"},{c:"CZK",n:"Czech Republic",g:"m"},{c:"HKD",n:"Hong Kong",g:"m"},{c:"HUF",n:"Hungary",g:"m"},{c:"ILS",n:"Israel",g:"m"},{c:"JOD",n:"Jordan",g:"m"},{c:"KWD",n:"Kuwait",g:"m"},{c:"LKR",n:"Sri Lanka",g:"m"},{c:"MAD",n:"Morocco",g:"m"},{c:"MXN",n:"Mexico",g:"m"},{c:"OMR",n:"Oman",g:"m"},{c:"PLN",n:"Poland",g:"m"},{c:"QAR",n:"Qatar",g:"m"},{c:"RON",n:"Romania",g:"m"},{c:"RSD",n:"Serbia",g:"m"},{c:"RUB",n:"Russian Federation",g:"m"},{c:"SAR",n:"Saudi Arabia",g:"m"},{c:"SGD",n:"Singapore",g:"m"},{c:"THB",n:"Thailand",g:"m"},{c:"TND",n:"Tunisia",g:"m"},{c:"TRY",n:"Turkey",g:"m"},{c:"ZAR",n:"South Africa",g:"m"},{c:"ALL",n:"Albania",g:"a"},{c:"AMD",n:"Armenia",g:"a"},{c:"AOA",n:"Angola",g:"a"},{c:"ARS",n:"Argentina",g:"a"},{c:"AZN",n:"Azerbaijan",g:"a"},{c:"BAM",n:"Bosnia a. Herzegovina",g:"a"},{c:"BBD",n:"Barbados",g:"a"},{c:"BDT",n:"Bangladesh",g:"a"},{c:"BIF",n:"Burundi",g:"a"},{c:"BMD",n:"Bermuda",g:"a"},{c:"BND",n:"Brunei Darussalam",g:"a"},{c:"BOB",n:"Bolivia",g:"a"},{c:"BRL",n:"Brazil",g:"a"},{c:"BSD",n:"Bahamas",g:"a"},{c:"BTN",n:"Bhutan",g:"a"},{c:"BWP",n:"Botswana",g:"a"},{c:"BYN",n:"Belarus",g:"a"},{c:"BZD",n:"Belize",g:"a"},{c:"CDF",n:"Dem. Republic of Congo",g:"a"},{c:"CLP",n:"Chile",g:"a"},{c:"CNY",n:"People's Republic of China",g:"a"},{c:"COP",n:"Colombia",g:"a"},{c:"CRC",n:"Costa Rica",g:"a"},{c:"CUP",n:"Cuba",g:"a"},{c:"CVE",n:"Cape Verde",g:"a"},{c:"DJF",n:"Djibouti",g:"a"},{c:"DOP",n:"Domenican Rep",g:"a"},{c:"DZD",n:"Algeria",g:"a"},{c:"EGP",n:"Egypt",g:"a"},{c:"ETB",n:"Ethiopia",g:"a"},{c:"FJD",n:"Fiji",g:"a"},{c:"GEL",n:"Georgia",g:"a"},{c:"GHS",n:"Ghana",g:"a"},{c:"GMD",n:"Gambia",g:"a"},{c:"GNF",n:"Guinea",g:"a"},{c:"GTQ",n:"Guatemala",g:"a"},{c:"GYD",n:"Guyana",g:"a"},{c:"HNL",n:"Honduras",g:"a"},{c:"HTG",n:"Haiti",g:"a"},{c:"IDR",n:"Indonesia",g:"a"},{c:"INR",n:"India",g:"a"},{c:"IQD",n:"Iraq",g:"a"},{c:"ISK",n:"Iceland",g:"a"},{c:"JMD",n:"Jamaica",g:"a"},{c:"KES",n:"Kenya",g:"a"},{c:"KGS",n:"Republic Of Kyrgyzstan",g:"a"},{c:"KHR",n:"Cambodia",g:"a"},{c:"KRW",n:"Republic Of Korea",g:"a"},{c:"KYD",n:"Cayman Islands",g:"a"},{c:"KZT",n:"Kazakhstan",g:"a"},{c:"LAK",n:"Dem. People's Rep. of Laos",g:"a"},{c:"LBP",n:"Lebanon",g:"a"},{c:"LRD",n:"Liberia",g:"a"},{c:"LSL",n:"Lesotho",g:"a"},{c:"LYD",n:"Libya",g:"a"},{c:"MDL",n:"Republic Of Moldova",g:"a"},{c:"MGA",n:"Madagascar",g:"a"},{c:"MKD",n:"Macedonia",g:"a"},{c:"MNT",n:"Mongolia",g:"a"},{c:"MOP",n:"Macau",g:"a"},{c:"MRU",n:"Mauritania",g:"a"},{c:"MUR",n:"Mauritius",g:"a"},{c:"MVR",n:"Maldives",g:"a"},{c:"MWK",n:"Malawi",g:"a"},{c:"MYR",n:"Malaysia",g:"a"},{c:"MZN",n:"Mozambique",g:"a"},{c:"NAD",n:"Namibia",g:"a"},{c:"NGN",n:"Nigeria",g:"a"},{c:"NIO",n:"Nicaragua",g:"a"},{c:"NPR",n:"Nepal",g:"a"},{c:"PAB",n:"Panama",g:"a"},{c:"PEN",n:"Peru",g:"a"},{c:"PGK",n:"Papua New Guinea",g:"a"},{c:"PHP",n:"Philippines",g:"a"},{c:"PKR",n:"Pakistan",g:"a"},{c:"PYG",n:"Paraguay",g:"a"},{c:"RWF",n:"Rwanda",g:"a"},{c:"SCR",n:"Seychelles",g:"a"},{c:"SLE",n:"Sierra Leone",g:"a"},{c:"SOS",n:"Somalia",g:"a"},{c:"SRD",n:"Suriname",g:"a"},{c:"STN",n:"Sao Tomé and Principe",g:"a"},{c:"SVC",n:"El Salvador",g:"a"},{c:"SZL",n:"Swaziland",g:"a"},{c:"TJS",n:"Tajikistan",g:"a"},{c:"TMT",n:"Turkmenistan",g:"a"},{c:"TTD",n:"Trinidad And Tobago",g:"a"},{c:"TWD",n:"Taiwan",g:"a"},{c:"TZS",n:"United Rep. Of Tanzania",g:"a"},{c:"UAH",n:"Ukraine",g:"a"},{c:"UGX",n:"Uganda",g:"a"},{c:"UYU",n:"Uruguay",g:"a"},{c:"UZS",n:"Uzbekistan",g:"a"},{c:"VES",n:"Venezuela",g:"a"},{c:"VND",n:"Vietnam",g:"a"},{c:"XAF",n:"Central African Republic",g:"a"},{c:"XCD",n:"Antigua and Barbuda",g:"a"},{c:"XCG",n:"Curaçao, Sint Maarten (southern part)",g:"a"},{c:"XOF",n:"Benin",g:"a"},{c:"XPF",n:"French Polynesia",g:"a"},{c:"YER",n:"Yemen",g:"a"},{c:"ZMW",n:"Zambia",g:"a"},{c:"ZWG",n:"Zimbabwe",g:"a"}];
+
+const CURMAP={}; CURRENCIES.forEach(x=>CURMAP[x.c]=x);
+
+/* ===== DOM ===== */
+const $=id=>document.getElementById(id);
+const go=$('go'), statusEl=$('status'), result=$('result');
+
+/* date helpers */
+function fmt(d){return d.toISOString().slice(0,10);}
+function prevBusinessDay(d){const x=new Date(d);do{x.setDate(x.getDate()-1);}while(x.getDay()===0||x.getDay()===6);return x;}
+function todayBiz(){const t=new Date();return fmt(t.getDay()===0||t.getDay()===6?prevBusinessDay(t):t);}
+
+/* ===== Rows model: each row = currency + date ===== */
+const rowsWrap=$('rows');
+
+function makeRow(initCode, initDate){
+  initDate=initDate||todayBiz();
+  const row=document.createElement('div'); row.className='qrow';
+  row.innerHTML=
+    '<div class="combo">'
+      +'<div class="combo-box"><input type="text" class="row-cur" placeholder="code or country, e.g. AED" autocomplete="off"></div>'
+      +'<div class="dropdown"></div>'
+    +'</div>'
+    +'<input type="date" class="row-date">'
+    +'<button class="rm-row" title="Remove row">×</button>';
+  const input=row.querySelector('.row-cur');
+  const drop=row.querySelector('.dropdown');
+  const dateI=row.querySelector('.row-date');
+  dateI.value=initDate;
+  row._code='';
+  let list=[], active=-1;
+
+  function setCode(code){
+    row._code=code||'';
+    if(!code){input.value='';return;}
+    const m=CURMAP[code]||{n:''}; input.value=code+' — '+m.n;
+    drop.classList.remove('show');
+  }
+  function filter(){
+    const raw=input.value.trim();
+    const selStr=row._code?(row._code+' — '+(CURMAP[row._code]||{n:''}).n):'';
+    const q=(raw===selStr)?'':raw.toLowerCase(); // refocus on a chosen value shows full list
+    let ms=CURRENCIES.filter(x=> q===''||x.c.toLowerCase().includes(q)||x.n.toLowerCase().includes(q));
+    ms.sort((a,b)=>{const as=a.c.toLowerCase().startsWith(q)?0:1,bs=b.c.toLowerCase().startsWith(q)?0:1;return as-bs;});
+    list=ms.slice(0,60); active=-1;
+    if(!list.length){drop.innerHTML='<div class="dd-empty">Nothing found</div>';drop.classList.add('show');return;}
+    let h='',lg=null;
+    list.forEach((x,i)=>{if(x.g!==lg){h+='<div class="dd-grouplbl">'+(x.g==='m'?'Main':'Additional')+'</div>';lg=x.g;}h+='<div class="dd-item" data-i="'+i+'"><span class="code">'+x.c+'</span><span class="cty">'+x.n+'</span></div>';});
+    drop.innerHTML=h;
+    drop.querySelectorAll('.dd-item').forEach(el=>el.onmousedown=e=>{e.preventDefault();setCode(list[+el.dataset.i].c);});
+    drop.classList.add('show');
+  }
+  function setActive(i){const it=drop.querySelectorAll('.dd-item');it.forEach(e=>e.classList.remove('active'));if(i>=0&&i<it.length){it[i].classList.add('active');it[i].scrollIntoView({block:'nearest'});}active=i;}
+
+  input.addEventListener('focus',()=>{input.select();filter();});
+  input.addEventListener('input',filter);
+  input.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();setActive(Math.min(active+1,list.length-1));}
+    else if(e.key==='ArrowUp'){e.preventDefault();setActive(Math.max(active-1,0));}
+    else if(e.key==='Enter'){e.preventDefault();const i=active>=0?active:0;if(list[i])setCode(list[i].c);}
+  });
+  input.addEventListener('blur',()=>{setTimeout(()=>{drop.classList.remove('show');setCode(row._code);},150);});
+
+  row.querySelector('.rm-row').addEventListener('click',()=>{row.remove();updateRmState();});
+  rowsWrap.appendChild(row);
+  if(initCode) setCode(initCode);
+  updateRmState();
+  return row;
+}
+function updateRmState(){
+  const rws=rowsWrap.querySelectorAll('.qrow');
+  rws.forEach(r=>{r.querySelector('.rm-row').style.visibility=rws.length>1?'visible':'hidden';});
+}
+$('addRow').addEventListener('click',()=>{
+  const last=rowsWrap.querySelector('.qrow:last-child');
+  const d=last?last.querySelector('.row-date').value:todayBiz();
+  const r=makeRow('',d);
+  r.querySelector('.row-cur').focus();
+});
+document.addEventListener('click',e=>{ if(!e.target.closest('.combo')) document.querySelectorAll('.dropdown.show').forEach(d=>d.classList.remove('show')); });
+
+makeRow('USD',todayBiz()); // first row
+
+/* status */
+function showStatus(cls,msg){statusEl.className='status show '+cls;statusEl.innerHTML=msg;}
+function hideStatus(){statusEl.className='status';}
+
+/* ===== Fetch via proxy ===== */
+function cobaUrl(date,additional){return 'https://commander.commerzbank.com/efx-rates/payments/fixingratesxls/'+date+'/'+(additional?'true':'false')+'?lang=en';}
+
+/* default proxy (Cloudflare Worker) baked in — works for everyone out of the box */
+const DEFAULT_PROXY='https://commerzbank-fx.tormozzzpwnz.workers.dev/';
+function getProxy(){return DEFAULT_PROXY;}
+
+/* public proxies — best-effort last resort only */
+const PROXIES=[
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+  u=>'https://thingproxy.freeboard.io/fetch/'+u
+];
+
+function buildAttempts(url){
+  const list=[];
+  const pr=getProxy().trim();
+  if(pr){ list.push(pr+(pr.includes('?')?'&':'?')+'url='+encodeURIComponent(url)); }
+  list.push(url);
+  PROXIES.forEach(p=>list.push(p(url)));
+  return list;
+}
+
+/* in-session cache: avoids re-downloading the same file; cleared on tab close/reload */
+const SESSION_CACHE=new Map();
+
+async function fetchXlsx(url){
+  if(SESSION_CACHE.has(url)) return SESSION_CACHE.get(url);
+  const attempts=buildAttempts(url);
+  let lastErr;
+  for(const a of attempts){
+    try{
+      const r=await fetch(a,{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const buf=await r.arrayBuffer();
+      if(buf.byteLength<200) throw new Error('empty');
+      SESSION_CACHE.set(url,buf);
+      return buf;
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('fetch failed');
+}
+
+/* parse workbook -> {date, rows:{CODE:{mid,bid,off,country}}} */
+function parseBook(buf){
+  const wb=XLSX.read(buf,{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1});
+  let hdr=-1, fileDate='';
+  for(let i=0;i<aoa.length;i++){
+    const row=aoa[i]||[];
+    if(!fileDate && typeof row[0]==='string'){
+      const m=row[0].match(/^Exchange Rates\s+(\d.+)$/i); if(m) fileDate=m[1].trim();
+    }
+    if(row[0]==='Currency (ISO)'){hdr=i;break;}
+  }
+  const out={};
+  if(hdr>=0){
+    for(let i=hdr+1;i<aoa.length;i++){
+      const row=aoa[i]||[];
+      const code=(row[0]||'').toString().trim();
+      if(!code) continue;
+      out[code]={country:row[1]||'',mid:+row[2],bid:+row[3],off:+row[4]};
+    }
+  }
+  return {date:fileDate,rows:out};
+}
+
+/* number formatting */
+function nf(v,dp){return v.toLocaleString('en-US',{minimumFractionDigits:dp,maximumFractionDigits:dp});}
+function smartDp(v){const a=Math.abs(v);return a>=1000?2:a>=1?4:6;}
+
+let lastRows=[];
+
+/* step one calendar day back */
+function prevDay(ds){const d=new Date(ds+'T12:00:00');d.setDate(d.getDate()-1);return fmt(d);}
+
+/* resolve rate for (date, code); if none that day (weekend/holiday), step back up to 10 days */
+async function resolveItem(reqDate, code){
+  const additional=(CURMAP[code]||{}).g==='a';
+  let d=reqDate;
+  for(let i=0;i<10;i++){
+    let buf;
+    try{ buf=await fetchXlsx(cobaUrl(d,additional)); }
+    catch(e){ return {ok:false,fetchError:e,reqDate,usedDate:reqDate,code,country:(CURMAP[code]||{}).n||''}; }
+    const book=parseBook(buf);
+    const r=book.rows?book.rows[code]:null;
+    if(r) return {ok:true,reqDate,usedDate:d,shifted:d!==reqDate,code,country:r.country||(CURMAP[code]||{}).n||'',mid:r.mid,bid:r.bid,off:r.off};
+    d=prevDay(d);
+  }
+  return {ok:false,noData:true,reqDate,usedDate:reqDate,code,country:(CURMAP[code]||{}).n||''};
+}
+
+async function run(){
+  const items=[...rowsWrap.querySelectorAll('.qrow')]
+    .map(r=>({code:r._code,date:r.querySelector('.row-date').value}))
+    .filter(x=>x.code && x.date);
+  if(items.length===0){showStatus('err','Fill in at least one row: currency and date.');return;}
+
+  go.disabled=true; result.style.display='none';
+  showStatus('loading','Loading Commerzbank rates ('+items.length+' '+(items.length===1?'request':'rows')+')… <span style="opacity:.6">the first request may take a few seconds</span>');
+
+  const rows=[];
+  for(const it of items){ rows.push(await resolveItem(it.date,it.code)); }
+  lastRows=rows;
+
+  if(rows.every(x=>!x.ok)){
+    const fe=rows.find(x=>x.fetchError);
+    showStatus('err','Could not load rates'+(fe?(' ('+(fe.fetchError.message||fe.fetchError)+')'):'')+'. Check your internet connection and try again.');
+    go.disabled=false; return;
+  }
+
+  if(rows.length===1 && rows[0].ok) renderSingle(rows[0]);
+  else renderTable(rows);
+
+  const shifts=rows.filter(x=>x.ok && x.shifted);
+  const missing=rows.filter(x=>!x.ok);
+  let msg='';
+  if(shifts.length){ msg+='⚠ Non-business day (weekend/holiday) — showing the rate of the nearest previous business day: '+shifts.map(s=>s.reqDate+' → <b>'+s.usedDate+'</b>').join('; ')+'. '; }
+  if(missing.length){ msg+='No data found for: '+missing.map(m=>m.code+' '+m.reqDate).join(', ')+'. '; }
+  if(msg){ msg+='You can change the date manually in the row and click “Show rates” again.'; showStatus('warn',msg); }
+  else hideStatus();
+  go.disabled=false;
+}
+
+function renderSingle(r){
+  $('tableView').style.display='none';
+  $('singleView').style.display='block';
+  $('resTitle').innerHTML=r.code+' <span style="color:#777;font-weight:400;font-size:15px;">'+r.country+'</span>';
+  $('resDate').innerHTML='Quote date: <b>'+r.usedDate+'</b>'+(r.shifted?(' <span style="color:#BA7517;">(requested '+r.reqDate+' — non-business day)</span>'):'');
+  const mid=r.mid, inv=1/mid;
+  $('bigLbl').textContent='1 '+r.code+' = EUR · Middle rate';
+  $('bigVal').textContent=nf(inv,smartDp(inv))+' EUR';
+  $('bigInv').textContent='1 EUR = '+nf(mid,smartDp(mid))+' '+r.code;
+  $('mMid').textContent=nf(mid,smartDp(mid));
+  $('mBid').textContent=isFinite(r.bid)?nf(r.bid,smartDp(r.bid)):'—';
+  $('mOff').textContent=isFinite(r.off)?nf(r.off,smartDp(r.off)):'—';
+  $('resNote').textContent='Middle rate — mid price; Bid/Offer — bank buy/sell. All quotes are against EUR.';
+  result.style.display='block';
+}
+
+function renderTable(rows){
+  $('singleView').style.display='none';
+  $('tableView').style.display='block';
+  let h='<thead><tr><th>Date</th><th>Currency</th><th>Country</th><th>1 unit = EUR</th><th>1 EUR =</th><th>Bid</th><th>Offer</th></tr></thead><tbody>';
+  let prev=null;
+  rows.forEach(r=>{
+    const dd=r.ok?r.usedDate:r.reqDate;
+    const sep=(prev!==null && dd!==prev)?' class="date-sep"':''; prev=dd;
+    const dateCell=dd+(r.ok&&r.shifted?'<br><span style="font-size:11px;color:#BA7517;">⟵ '+r.reqDate+'</span>':'');
+    if(!r.ok){
+      h+='<tr'+sep+'><td>'+r.reqDate+'</td><td class="code">'+r.code+'</td><td>'+r.country+'</td><td class="nd" colspan="4">no data</td></tr>';
+    }else{
+      const mid=r.mid,inv=1/mid;
+      h+='<tr'+sep+'><td>'+dateCell+'</td><td class="code">'+r.code+'</td><td>'+r.country+'</td>'
+        +'<td class="num main">'+nf(inv,smartDp(inv))+' EUR</td>'
+        +'<td class="num">'+nf(mid,smartDp(mid))+' '+r.code+'</td>'
+        +'<td class="num">'+(isFinite(r.bid)?nf(r.bid,smartDp(r.bid)):'—')+'</td>'
+        +'<td class="num">'+(isFinite(r.off)?nf(r.off,smartDp(r.off)):'—')+'</td></tr>';
+    }
+  });
+  h+='</tbody>';
+  $('rateTbl').innerHTML=h;
+  $('resTitle').textContent='Commerzbank rates · rows: '+rows.length;
+  $('resNote').textContent='“1 unit = EUR” — how many euros per one unit of the currency (Middle). “⟵” — actual date differs from the requested one (non-business day).';
+  result.style.display='block';
+}
+
+go.addEventListener('click',run);
+</script>
+</body>
+</html>
