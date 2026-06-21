@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Residency — Trip Day Counter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:24px 16px;min-height:100vh}
+.wrap{max-width:900px;margin:0 auto}
+
+/* ── Header ── */
+.tool-hdr{display:flex;align-items:flex-start;gap:12px;margin-bottom:24px;padding-bottom:18px;border-bottom:0.5px solid rgba(0,0,0,0.1)}
+.tool-hdr-icon{font-size:26px;margin-top:2px;flex-shrink:0}
+.tool-hdr-title{font-size:20px;font-weight:600;letter-spacing:-0.02em}
+.tool-hdr-sub{font-size:13px;color:#777;margin-top:3px;line-height:1.5}
+.nav-bar{display:flex;align-items:center;gap:6px;margin-bottom:18px;flex-wrap:wrap;padding-bottom:14px;border-bottom:.5px solid rgba(0,0,0,0.1)}
+.nav-link{font-size:12px;font-weight:500;color:#555;text-decoration:none;border:.5px solid rgba(0,0,0,0.15);padding:5px 12px;border-radius:100px;background:#fff;white-space:nowrap;transition:background .15s,color .15s,border-color .15s;display:inline-flex;align-items:center;gap:4px}
+.nav-link:hover{background:#ebebea;color:#1a1a1a}
+.nav-link.nav-active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+
+/* ── Cards ── */
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:20px;margin-bottom:14px}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:#777;margin-bottom:14px}
+
+/* ── Notice boxes ── */
+.notice{border-radius:10px;padding:12px 15px;margin-bottom:14px;font-size:13px;line-height:1.65}
+.notice b{font-weight:600}
+.notice code{font-family:monospace;font-size:12px;padding:1px 5px;border-radius:3px;background:rgba(0,0,0,0.06)}
+.n-blue{background:#E8F0FE;border:0.5px solid rgba(66,133,244,0.3);color:#1a3080}
+.n-amber{background:#FFF8E1;border:0.5px solid rgba(249,168,37,0.4);color:#5D4037}
+.n-green{background:#E8F5E9;border:0.5px solid rgba(46,160,67,0.3);color:#1B5E20}
+.n-red{background:#FEECEC;border:0.5px solid rgba(200,30,30,0.25);color:#7B1D1D}
+
+/* ── Google auth ── */
+.auth-card{background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:32px 24px;text-align:center;margin-bottom:14px}
+.auth-card-title{font-size:16px;font-weight:500;margin-bottom:8px}
+.auth-card-sub{font-size:13px;color:#777;margin-bottom:22px;line-height:1.55;max-width:380px;margin-left:auto;margin-right:auto}
+.google-btn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid #dadce0;border-radius:8px;padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;color:#3c4043;transition:box-shadow 0.15s;margin-bottom:14px}
+.google-btn:hover{box-shadow:0 1px 6px rgba(0,0,0,0.15)}
+.google-btn:disabled{opacity:0.5;cursor:not-allowed}
+.google-btn svg{width:18px;height:18px;flex-shrink:0}
+.or-line{font-size:12px;color:#bbb;margin:2px 0 14px}
+.manual-link{border:none;background:none;font:inherit;font-size:13px;color:#777;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.manual-link:hover{color:#1a1a1a}
+
+/* ── Signed-in bar / mode bar ── */
+.mode-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:10px;margin-bottom:14px}
+.user-pill{display:inline-flex;align-items:center;gap:8px;background:#ebebea;border-radius:20px;padding:5px 12px 5px 7px;font-size:13px}
+.user-av{width:24px;height:24px;border-radius:50%;background:#1D9E75;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.mode-badge{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;background:#ebebea;color:#555;border-radius:6px;padding:3px 8px}
+.bar-btn{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:5px 12px;font:inherit;font-size:13px;background:#fff;color:#555;cursor:pointer}
+.bar-btn:hover{background:#ebebea;color:#1a1a1a}
+.bar-btn.accent{background:#1a1a1a;color:#fff;border-color:transparent}
+.bar-btn.accent:hover{background:#333}
+.bar-ml{margin-left:auto;display:flex;gap:8px}
+
+/* ── Controls ── */
+.controls-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.ctrl-g{display:flex;flex-direction:column;gap:4px}
+.ctrl-lbl{font-size:12px;color:#777;text-transform:uppercase;letter-spacing:0.05em}
+select,input[type=text]{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:7px 10px;font:inherit;background:#fff;color:#1a1a1a;font-size:13px}
+select:focus,input[type=text]:focus{outline:none;border-color:rgba(0,0,0,0.5)}
+.fetch-btn{border:none;border-radius:8px;padding:7px 18px;font:inherit;background:#1a1a1a;color:#fff;cursor:pointer;font-size:13px}
+.fetch-btn:hover{background:#333}
+.fetch-btn:disabled{background:#aaa;cursor:not-allowed}
+.spinner{width:14px;height:14px;border:2px solid #ddd;border-top-color:#1a1a1a;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Status banner ── */
+.status-banner{display:none;border-radius:10px;padding:14px 18px;margin-bottom:14px;font-size:14px;font-weight:500;align-items:center;gap:12px}
+.status-resident{background:#E8F5E9;border:0.5px solid rgba(46,160,67,0.3);color:#1B5E20}
+.status-nonresident{background:#FEECEC;border:0.5px solid rgba(200,30,30,0.25);color:#7B1D1D}
+.status-icon{font-size:22px}
+
+/* ── Metrics ── */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.metric{background:#ebebea;border-radius:10px;padding:14px 14px 12px}
+.m-lbl{font-size:11px;color:#777;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+.m-val{font-size:30px;font-weight:500;line-height:1}
+.m-sub{font-size:12px;margin-top:4px;color:#777}
+.c-ok{color:#0F6E56}.c-warn{color:#BA7517}.c-red{color:#A32D2D}.c-blue{color:#1D6AE5}
+
+/* ── Progress ── */
+.prog-bg{height:8px;background:#ebebea;border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width 0.4s,background 0.4s;background:#1D9E75}
+.prog-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:#777}
+
+/* ── Trip table ── */
+.trips-scroll{overflow-x:auto;margin-bottom:8px}
+table.trips{width:100%;border-collapse:collapse;font-size:13px;min-width:700px}
+.trips thead tr{border-bottom:0.5px solid rgba(0,0,0,0.1)}
+.trips th{font-size:11px;color:#777;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;padding:7px 10px;text-align:left;white-space:nowrap}
+.trips td{padding:8px 10px;border-bottom:0.5px solid rgba(0,0,0,0.06);vertical-align:middle}
+.trips tbody tr:last-child td{border-bottom:none}
+.trips tbody tr:hover td{background:#fafaf9}
+.trip-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;flex-shrink:0;vertical-align:middle}
+.trip-name-cell{font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-range{font-size:12px;color:#aaa;white-space:nowrap}
+.date-inp{border:0.5px solid rgba(0,0,0,0.18);border-radius:6px;padding:4px 7px;font:inherit;font-size:12px;color:#1a1a1a;background:#fff;width:128px;cursor:pointer}
+.date-inp:focus{outline:none;border-color:rgba(0,0,0,0.5)}
+.abroad-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:#EAF3DE;color:#3B6D11;white-space:nowrap}
+.abroad-badge.zero{background:#ebebea;color:#777}
+.confirm-lbl{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#777;white-space:nowrap;user-select:none}
+.confirm-lbl input{accent-color:#0F6E56;width:13px;height:13px;cursor:pointer}
+.confirm-lbl.yes{color:#0F6E56;font-weight:500}
+.rm-btn{border:0.5px solid rgba(0,0,0,0.15);border-radius:5px;width:22px;height:22px;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:none;color:#aaa;padding:0}
+.rm-btn:hover{border-color:#E24B4A;color:#E24B4A;background:#FEECEC}
+.empty-note{font-size:13px;color:#777;padding:14px 0;text-align:center}
+
+/* ── Add trip form ── */
+.add-form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding-top:14px;margin-top:14px;border-top:0.5px solid rgba(0,0,0,0.08)}
+.fgrp{display:flex;flex-direction:column;gap:3px;flex:1;min-width:110px}
+.flbl{font-size:12px;color:#777}
+input[type=date]{border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 10px;font:inherit;background:#fff;color:#1a1a1a;font-size:13px}
+input[type=date]:focus{outline:none;border-color:rgba(0,0,0,0.5)}
+.add-btn{border:none;border-radius:8px;padding:7px 16px;font:inherit;font-size:13px;background:#1a1a1a;color:#fff;cursor:pointer;align-self:flex-end;white-space:nowrap}
+.add-btn:hover{background:#333}
+
+/* ── Calendar ── */
+.sec-hd{font-size:11px;font-weight:600;color:#777;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#777}
+.leg-sw{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.leg-cross{width:12px;height:12px;border-radius:3px;flex-shrink:0;border:1.5px solid rgba(0,0,0,0.3)}
+.months-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+.month-hdr{font-size:13px;font-weight:500;margin-bottom:8px;text-align:center;color:#1a1a1a}
+.cal-grid{display:grid;grid-template-columns:26px repeat(7,1fr);gap:2px}
+.cal-cw-hdr{font-size:10px;color:#ccc;text-align:center;padding:3px 0;font-weight:500}
+.cal-dow{font-size:11px;color:#777;text-align:center;padding:3px 0;font-weight:500}
+.cal-cw{font-size:9px;color:#ccc;text-align:center;display:flex;align-items:center;justify-content:center;line-height:1;position:relative;cursor:default}
+.cal-cw:hover .cw-tip{display:block}
+.cw-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:500;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.cal-day{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:11px;color:#1a1a1a;overflow:hidden}
+.cal-day.empty{pointer-events:none}
+.cal-day.other-m{color:#ccc;pointer-events:none}
+.cal-day.trip-full{color:#fff!important;font-weight:500}
+.cal-day.trip-cross{font-weight:500}
+.cal-day.today-ring{box-shadow:inset 0 0 0 2px #D85A30}
+.cal-day:not(.empty):not(.other-m):hover{outline:0.5px solid rgba(0,0,0,0.25);cursor:pointer;z-index:2}
+.cal-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;color:#1a1a1a;z-index:99;display:none;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.cal-day:not(.other-m):hover .cal-tip{display:block}
+.cal-day-num{position:relative;z-index:1;pointer-events:none}
+
+
+/* ── Responsive ── */
+@media(max-width:560px){
+  .metrics{grid-template-columns:1fr 1fr}
+  .trips th:nth-child(2),.trips td:nth-child(2){display:none}
+  .date-inp{width:110px}
+  .tool-hdr{flex-wrap:wrap}
+  .home-link{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- NAVIGATION -->
+<nav class="nav-bar">
+  <a class="nav-link" href="index.html">⌂ Home</a>
+  <a class="nav-link" href="visa_days_calc.html">📅 90/180 Days</a>
+  <a class="nav-link nav-active" href="#">🛫 Residency</a>
+  <a class="nav-link" href="ndfl3.html">📋 3-NDFL</a>
+<a class="nav-link" href="commerzbank-rate.html">💶 Commerzbank rate</a>
+</nav>
+
+<!-- HEADER -->
+<div class="tool-hdr">
+  <div class="tool-hdr-icon">🛫</div>
+  <div>
+    <div class="tool-hdr-title">Tax Residency — Trip Day Counter</div>
+    <div class="tool-hdr-sub">Count days outside Russia · <strong>183+ days abroad</strong> = non-resident status · Days of departure &amp; return count as Russia days</div>
+  </div>
+</div>
+
+<!-- GOOGLE WARNING -->
+<div id="google-notice" class="notice n-blue" style="display:none">
+  <b>ℹ️ Google sign-in warning.</b> This app is not yet Google-verified. To proceed:
+  click <b>"Advanced"</b> → <b>"Go to app (unsafe)"</b> → check <b>Google Calendar</b> → Continue.
+</div>
+
+<!-- CONFIG ERROR -->
+<div id="config-error" class="notice n-amber" style="display:none">
+  <b>⚙️ OAuth Client ID not configured.</b> Replace <code>YOUR_GOOGLE_CLIENT_ID</code> in the file
+  with your ID from <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>
+  (see setup guide below). Or use <b>Manual Mode</b>.
+</div>
+
+<!-- AUTH CARD -->
+<div class="auth-card" id="auth-card">
+  <div class="auth-card-title">Connect Google Calendar</div>
+  <p class="auth-card-sub">Grant read-only access to automatically import business trips. All data stays in your browser — nothing is sent anywhere.<br><br>Already have an exported CSV? <button class="manual-link" onclick="el('import-file').click()">Import it directly</button> — no sign-in needed.</p>
+  <button class="google-btn" id="sign-in-btn" onclick="signIn()">
+    <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Sign in with Google
+  </button>
+  <div class="or-line">— or —</div>
+  <button class="manual-link" onclick="enterManualMode()">Use Manual Mode (no Google required)</button>
+</div>
+
+<!-- GOOGLE SIGNED-IN BAR -->
+<div id="google-bar" class="mode-bar" style="display:none">
+  <div class="user-pill">
+    <div class="user-av" id="user-av">G</div>
+    <span id="user-name">Google User</span>
+  </div>
+  <span class="mode-badge">📅 Google Calendar</span>
+  <div class="bar-ml">
+    <button class="bar-btn" onclick="signOut()">Sign out</button>
+    <button class="bar-btn" onclick="el('import-file').click()">⬆ Import CSV</button>
+    <button class="bar-btn accent" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div>
+
+<!-- MANUAL MODE BAR -->
+<div id="manual-bar" class="mode-bar" style="display:none">
+  <span class="mode-badge">✏️ Manual Mode</span>
+  <span style="font-size:13px;color:#777">Add trips manually · Data saved in browser</span>
+  <div class="bar-ml">
+    <button class="bar-btn" onclick="switchToGoogle()">Use Google Calendar</button>
+    <button class="bar-btn" onclick="el('import-file').click()">⬆ Import CSV</button>
+    <button class="bar-btn" onclick="clearAllManual()" style="color:#A32D2D">Clear all</button>
+    <button class="bar-btn accent" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls-row" class="card" style="display:none">
+  <div class="controls-row">
+    <div class="ctrl-g">
+      <span class="ctrl-lbl">Year</span>
+      <select id="year-sel" onchange="onYearChange()"></select>
+    </div>
+    <div class="ctrl-g" id="keyword-grp">
+      <span class="ctrl-lbl">Calendar keyword</span>
+      <input type="text" id="keyword" value="trip" placeholder="e.g. trip" style="width:150px">
+    </div>
+    <button class="fetch-btn" id="fetch-btn" onclick="fetchFromGoogle()" style="display:none">🔄 Sync Calendar</button>
+    <div id="load-state" style="display:none;font-size:13px;color:#777;display:none;align-items:center;gap:8px">
+      <span class="spinner"></span><span id="load-text">Loading…</span>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results" style="display:none">
+
+  <!-- Status banner -->
+  <div id="status-banner" class="status-banner"></div>
+
+  <!-- Metrics -->
+  <div class="metrics" id="metrics-row"></div>
+
+  <!-- Progress -->
+  <div class="card" style="padding:16px 20px">
+    <div class="m-lbl" style="margin-bottom:8px">Progress toward 183-day non-resident threshold</div>
+    <div class="prog-bg"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="prog-labels"><span>0</span><span id="prog-mid">91 days</span><span>183 days</span></div>
+  </div>
+
+  <!-- Trips + border date confirmation -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin-bottom:0">Trips &amp; border crossing dates</div>
+      <button class="bar-btn" onclick="confirmAll()" style="font-size:12px">✓ Confirm all dates</button>
+    </div>
+
+    <div class="notice n-amber" style="padding:10px 14px;margin-bottom:12px">
+      ℹ️ Set the <b>actual border crossing dates</b> — they may differ from calendar event dates.
+      Departure &amp; return days are counted as <b>Russia days</b>; only the days between them count as abroad.
+    </div>
+
+    <div id="trips-container">
+      <p class="empty-note">No trips yet. Add trips below or sync Google Calendar.</p>
+    </div>
+
+    <!-- Add trip form (always visible) -->
+    <div class="add-form">
+      <div class="fgrp">
+        <span class="flbl">Trip / destination name</span>
+        <input type="text" id="new-name" placeholder="e.g. Korea — Busan" style="font-size:13px">
+      </div>
+      <div class="fgrp">
+        <span class="flbl">🛫 Departure date</span>
+        <input type="date" id="new-dep">
+      </div>
+      <div class="fgrp">
+        <span class="flbl">🛬 Return date</span>
+        <input type="date" id="new-ret">
+      </div>
+      <button class="add-btn" onclick="addManualTrip()">+ Add trip</button>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="card">
+    <div class="sec-hd">Calendar — <span id="cal-year">2025</span></div>
+    <div class="cal-legend" id="cal-legend"></div>
+    <div class="months-wrap" id="cal-months"></div>
+  </div>
+
+</div><!-- /results -->
+
+<!-- hidden file input for CSV import -->
+<input type="file" id="import-file" accept=".csv,.txt" style="display:none" onchange="importCSV(event)">
+
+</div><!-- /wrap -->
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CONFIG  — paste your Client ID on the line below
+   ═══════════════════════════════════════════════════════════ */
+const CLIENT_ID = '234327071077-o693pckhpvrbauigotp3dvncl6anbc24.apps.googleusercontent.com';
+/* ═══════════════════════════════════════════════════════════ */
+
+const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.profile';
+const TARGET = 183;
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+const DOW = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+/* Palette — 12 distinct colours for trips */
+const PALETTE = [
+  '#2D7AE5','#E5622D','#2DA864','#9B2DE5','#D4537E',
+  '#2DBDE5','#BA7517','#5B4BA8','#1D9E75','#A32D2D',
+  '#5B8BE5','#639922',
+];
+
+/* ── State ── */
+let trips       = [];    /* [{id,source,title,calS,calE,depDate,retDate,confirmed,color}] */
+let tokenClient = null;
+let accessToken = null;
+let manualMode  = false;
+let currentYear = new Date().getFullYear();
+
+/* ── localStorage keys ── */
+const LS_DATA = 'taxtracker_v3';
+const LS_YEAR = 'taxtracker_year';
+const LS_MODE = 'taxtracker_mode';
+
+/* ════════════════════════════════════
+   INIT
+   ════════════════════════════════════ */
+function init() {
+  const sel = el('year-sel');
+  const now = new Date().getFullYear();
+  for (let y = now + 1; y >= now - 4; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if (y === now) o.selected = true;
+    sel.appendChild(o);
+  }
+  currentYear = parseInt(localStorage.getItem(LS_YEAR) || now);
+  sel.value = currentYear;
+
+  loadSaved();
+
+  if (localStorage.getItem(LS_MODE) === 'manual') {
+    enterManualMode(true);
+    return;
+  }
+
+  const ok = CLIENT_ID && CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID' && CLIENT_ID.includes('apps.googleusercontent.com');
+  if (ok) {
+    el('google-notice').style.display = 'block';
+    setupGIS();
+  } else {
+    el('config-error').style.display = 'block';
+    el('sign-in-btn').disabled = true;
+  }
+
+  /* Show results if we have saved data from a previous Google session */
+  if (trips.length) {
+    el('controls-row').style.display = 'block';
+    el('results').style.display = 'block';
+    el('keyword-grp').style.display = 'flex';
+    render();
+  }
+}
+
+/* ════════════════════════════════════
+   GOOGLE IDENTITY SERVICES
+   ════════════════════════════════════ */
+function setupGIS() {
+  if (!window.google) {
+    setTimeout(setupGIS, 300); return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: handleToken,
+  });
+}
+
+function signIn() {
+  if (!tokenClient) { setupGIS(); setTimeout(signIn, 600); return; }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  /* Keep manual trips but remove google-sourced ones */
+  trips = trips.filter(t => t.source === 'manual');
+  saveData();
+  el('google-bar').style.display = 'none';
+  el('fetch-btn').style.display = 'none';
+  el('auth-card').style.display = 'block';
+  if (!trips.length) el('results').style.display = 'none';
+  else render();
+}
+
+async function handleToken(resp) {
+  if (resp.error) {
+    alert('Sign-in error: ' + resp.error + (resp.error_description ? '\n' + resp.error_description : ''));
+    return;
+  }
+  const calOk = google.accounts.oauth2.hasGrantedAllScopes(resp, 'https://www.googleapis.com/auth/calendar.readonly');
+  if (!calOk) {
+    alert('Google Calendar access was not granted.\n\nWhen signing in:\n1. Click "Advanced"\n2. Click "Go to app (unsafe)"\n3. Check the box next to Google Calendar\n4. Click Continue\n\nPlease try signing in again.');
+    return;
+  }
+  accessToken = resp.access_token;
+  el('auth-card').style.display = 'none';
+  el('google-bar').style.display = 'flex';
+  el('controls-row').style.display = 'block';
+  el('keyword-grp').style.display = 'flex';
+  el('fetch-btn').style.display = 'inline-block';
+  el('results').style.display = 'block';
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {headers:{Authorization:'Bearer '+accessToken}});
+    const u = await r.json();
+    el('user-name').textContent = u.name || u.email || 'Google User';
+    el('user-av').textContent = ((u.name||'G').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()) || 'G';
+  } catch(e) {}
+  fetchFromGoogle();
+}
+
+async function fetchFromGoogle() {
+  if (!accessToken) return;
+  const year    = currentYear;
+  const keyword = (el('keyword').value || 'trip').trim().toLowerCase();
+  if (!keyword) { alert('Enter a keyword.'); return; }
+
+  el('load-state').style.display = 'flex';
+  el('fetch-btn').disabled = true;
+
+  const tMin = encodeURIComponent(year + '-01-01T00:00:00Z');
+  const tMax = encodeURIComponent(year + '-12-31T23:59:59Z');
+
+  let events = [], pageToken = null;
+  try {
+    do {
+      let url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${tMin}&timeMax=${tMax}&maxResults=2500&singleEvents=true&orderBy=startTime`;
+      if (pageToken) url += '&pageToken=' + encodeURIComponent(pageToken);
+      const r = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+      if (!r.ok) {
+        const e = await r.json().catch(()=>({}));
+        throw new Error(r.status + ' ' + (e?.error?.message || r.statusText));
+      }
+      const data = await r.json();
+      events = events.concat(data.items || []);
+      pageToken = data.nextPageToken || null;
+      el('load-text').textContent = `Loaded ${events.length} events…`;
+    } while (pageToken);
+  } catch(e) {
+    el('load-state').style.display = 'none';
+    el('fetch-btn').disabled = false;
+    if (e.message.includes('401')) { alert('Session expired. Please sign in again.'); signOut(); }
+    else if (e.message.includes('403')) { alert('Calendar access denied (403).\nTry signing out and signing in again with Calendar access checked.'); signOut(); }
+    else alert('Error: ' + e.message);
+    return;
+  }
+
+  /* Filter by keyword */
+  const matched = events.filter(ev => (ev.summary||'').toLowerCase().includes(keyword));
+
+  /* Build google trips, merging with saved border dates */
+  const saved     = loadSavedMap();
+  const manuals   = trips.filter(t => t.source === 'manual');
+  const googleTrips = matched.map((ev, i) => {
+    let calS, calE;
+    if (ev.start.date) {
+      calS = parseD(ev.start.date);
+      calE = parseD(ev.end.date); calE.setDate(calE.getDate() - 1); /* GCal end is exclusive */
+    } else {
+      calS = new Date(ev.start.dateTime); calS.setHours(0,0,0,0);
+      calE = new Date(ev.end.dateTime);   calE.setHours(0,0,0,0);
+    }
+    const id  = ev.id || ('gcal_' + ev.summary + '_' + ymd(calS));
+    const svd = saved[id];
+    return {
+      id, source: 'google', title: ev.summary || '(no title)',
+      calS, calE,
+      depDate:   svd ? parseD(svd.dep) : new Date(calS),
+      retDate:   svd ? parseD(svd.ret) : new Date(calE),
+      confirmed: svd ? svd.confirmed   : false,
+      color: PALETTE[(manuals.length + i) % PALETTE.length],
+    };
+  });
+
+  trips = [...manuals, ...googleTrips];
+  assignColors();
+  saveData();
+  render();
+
+  el('load-state').style.display = 'none';
+  el('fetch-btn').disabled = false;
+}
+
+/* ════════════════════════════════════
+   MANUAL MODE
+   ════════════════════════════════════ */
+function enterManualMode(silent) {
+  manualMode = true;
+  localStorage.setItem(LS_MODE, 'manual');
+  el('auth-card').style.display    = 'none';
+  el('google-notice').style.display = 'none';
+  el('config-error').style.display  = 'none';
+  el('manual-bar').style.display    = 'flex';
+  el('controls-row').style.display  = 'block';
+  el('keyword-grp').style.display   = 'none';
+  el('fetch-btn').style.display     = 'none';
+  el('results').style.display       = 'block';
+  render();
+}
+
+function switchToGoogle() {
+  manualMode = false;
+  localStorage.removeItem(LS_MODE);
+  el('manual-bar').style.display = 'none';
+  el('auth-card').style.display  = 'block';
+  const ok = CLIENT_ID && CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID';
+  el('config-error').style.display  = ok ? 'none' : 'block';
+  el('google-notice').style.display = ok ? 'block' : 'none';
+  if (ok) setupGIS();
+}
+
+function clearAllManual() {
+  if (!confirm('Remove all manually added trips?')) return;
+  trips = trips.filter(t => t.source !== 'manual');
+  assignColors();
+  saveData();
+  render();
+}
+
+/* ════════════════════════════════════
+   TRIP MANAGEMENT
+   ════════════════════════════════════ */
+function addManualTrip() {
+  const name = (el('new-name').value || '').trim();
+  const depV = el('new-dep').value;
+  const retV = el('new-ret').value;
+  if (!depV || !retV) { alert('Please select departure and return dates.'); return; }
+  const dep = parseD(depV), ret = parseD(retV);
+  if (dep > ret) { alert('Return date must be on or after departure date.'); return; }
+  trips.push({
+    id: 'manual_' + Date.now(), source: 'manual',
+    title: name || 'Business trip',
+    calS: new Date(dep), calE: new Date(ret),
+    depDate: new Date(dep), retDate: new Date(ret),
+    confirmed: true,
+    color: PALETTE[trips.length % PALETTE.length],
+  });
+  assignColors();
+  saveData();
+  render();
+  el('new-name').value = '';
+  el('new-dep').value  = '';
+  el('new-ret').value  = '';
+}
+
+function removeTrip(id) {
+  trips = trips.filter(t => t.id !== id);
+  assignColors();
+  saveData();
+  render();
+}
+
+function setDep(id, val) {
+  const t = trips.find(t => t.id === id); if (!t || !val) return;
+  const d = parseD(val); t.depDate = d;
+  if (t.depDate > t.retDate) t.retDate = new Date(d);
+  saveData(); render();
+}
+
+function setRet(id, val) {
+  const t = trips.find(t => t.id === id); if (!t || !val) return;
+  const d = parseD(val); t.retDate = d;
+  if (t.retDate < t.depDate) t.depDate = new Date(d);
+  saveData(); render();
+}
+
+function toggleConfirm(id) {
+  const t = trips.find(t => t.id === id); if (!t) return;
+  t.confirmed = !t.confirmed;
+  saveData(); render();
+}
+
+function confirmAll() {
+  trips.forEach(t => t.confirmed = true);
+  saveData(); render();
+}
+
+function assignColors() {
+  trips.sort((a, b) => a.depDate - b.depDate);
+  trips.forEach((t, i) => { t.color = PALETTE[i % PALETTE.length]; });
+}
+
+/* Two trips are "chained" when the second starts exactly 1 day after the first ends
+   → person flew directly abroad without returning to Russia.
+   In that case: last day of trip A and first day of trip B are ABROAD (not Russia days). */
+function isChained(a, b) {
+  return midnight(a.retDate).getTime() + 864e5 === midnight(b.depDate).getTime();
+}
+
+/* Sorted list of confirmed trips — used by chain-detection logic */
+function confirmedSorted() {
+  return trips.filter(x => x.confirmed).sort((a, b) => a.depDate - b.depDate);
+}
+
+function daysAbroad(t) {
+  const dep     = midnight(t.depDate);
+  const ret     = midnight(t.retDate);
+  const sameDay = dep.getTime() === ret.getTime();
+  const conf    = confirmedSorted();
+  const idx     = conf.findIndex(x => x.id === t.id);
+
+  /* Is this trip chained to its neighbours? */
+  const prevChained = idx > 0 && isChained(conf[idx - 1], t);
+  const nextChained = idx < conf.length - 1 && isChained(t, conf[idx + 1]);
+
+  /* Departure day = Russia UNLESS arriving directly from previous abroad trip */
+  /* Return day    = Russia UNLESS flying directly to next abroad trip          */
+  const totalDays = Math.round((ret - dep) / 864e5) + 1;
+  let russianDays = 0;
+  if (!prevChained) russianDays++;                        /* dep = Russia */
+  if (!sameDay && !nextChained) russianDays++;            /* ret = Russia */
+  if (sameDay && !prevChained && !nextChained) russianDays = 1; /* same-day: 1 Russia day */
+
+  return Math.max(0, totalDays - russianDays);
+}
+
+function totalAbroad() {
+  return trips.filter(t => t.confirmed).reduce((s, t) => s + daysAbroad(t), 0);
+}
+
+/* ── Persistence ── */
+function saveData() {
+  const data = trips.map(t => ({
+    id: t.id, source: t.source, title: t.title,
+    calS: ymd(t.calS),   calE: ymd(t.calE),
+    dep:  ymd(t.depDate), ret: ymd(t.retDate),
+    confirmed: t.confirmed,
+  }));
+  localStorage.setItem(LS_DATA, JSON.stringify(data));
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(LS_DATA);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    trips = data.map((d, i) => ({
+      id: d.id, source: d.source, title: d.title,
+      calS: parseD(d.calS), calE: parseD(d.calE),
+      depDate: parseD(d.dep), retDate: parseD(d.ret),
+      confirmed: d.confirmed,
+      color: PALETTE[i % PALETTE.length],
+    }));
+    assignColors();
+  } catch(e) { trips = []; }
+}
+
+function loadSavedMap() {
+  try {
+    const raw = localStorage.getItem(LS_DATA);
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    const map = {};
+    data.forEach(d => { map[d.id] = d; });
+    return map;
+  } catch(e) { return {}; }
+}
+
+function onYearChange() {
+  currentYear = parseInt(el('year-sel').value);
+  localStorage.setItem(LS_YEAR, currentYear);
+  if (accessToken) fetchFromGoogle();
+  else render();
+}
+
+/* ════════════════════════════════════
+   RENDER
+   ════════════════════════════════════ */
+function render() {
+  const total = totalAbroad();
+  renderStatus(total);
+  renderMetrics(total);
+  renderProgress(total);
+  renderTripTable();
+  renderCalendar();
+}
+
+function renderStatus(total) {
+  const b = el('status-banner');
+  const anyConfirmed = trips.some(t => t.confirmed);
+  if (!anyConfirmed) { b.style.display = 'none'; return; }
+  b.style.display = 'flex';
+  if (total >= TARGET) {
+    b.className = 'status-banner status-nonresident';
+    b.innerHTML = '<span class="status-icon">⚠️</span><div><b>Non-resident status likely</b> — ' + total + ' days abroad ≥ 183. Consult a tax advisor regarding Russian tax obligations.</div>';
+  } else {
+    b.className = 'status-banner status-resident';
+    b.innerHTML = '<span class="status-icon">✅</span><div><b>Tax resident</b> — ' + total + ' days abroad out of 183-day threshold.</div>';
+  }
+}
+
+function renderMetrics(total) {
+  const cls  = total >= TARGET ? 'c-red' : total >= TARGET * 0.75 ? 'c-warn' : 'c-ok';
+  const rem  = Math.max(0, TARGET - total);
+  const over = Math.max(0, total - TARGET);
+  const hit  = total >= TARGET;
+  const yr   = trips.filter(t => t.depDate.getFullYear() === currentYear || t.retDate.getFullYear() === currentYear);
+  const conf = yr.filter(t => t.confirmed).length;
+  el('metrics-row').innerHTML = `
+    <div class="metric">
+      <div class="m-lbl">Days abroad ${currentYear}</div>
+      <div class="m-val ${cls}">${total}</div>
+      <div class="m-sub">${conf} trips confirmed</div>
+    </div>
+    <div class="metric">
+      <div class="m-lbl">${hit ? 'Over threshold by' : 'Days to threshold'}</div>
+      <div class="m-val ${hit ? 'c-red' : 'c-blue'}">${hit ? over : rem}</div>
+      <div class="m-sub">183-day limit</div>
+    </div>
+    <div class="metric">
+      <div class="m-lbl">Days in Russia (est.)</div>
+      <div class="m-val">${Math.max(0, 365 - total)}</div>
+      <div class="m-sub">approximate</div>
+    </div>
+    <div class="metric">
+      <div class="m-lbl">Trips loaded</div>
+      <div class="m-val">${yr.length}</div>
+      <div class="m-sub">${yr.length - conf} unconfirmed</div>
+    </div>`;
+}
+
+function renderProgress(total) {
+  const pct = Math.min(100, (total / TARGET) * 100);
+  const f   = el('prog-fill');
+  f.style.width = pct + '%';
+  f.style.background = total >= TARGET ? '#A32D2D' : total >= TARGET * 0.75 ? '#BA7517' : '#1D9E75';
+  el('prog-mid').textContent = Math.round(TARGET / 2) + ' days';
+}
+
+function renderTripTable() {
+  const container = el('trips-container');
+  const yr = trips.filter(t =>
+    t.depDate.getFullYear() === currentYear ||
+    t.retDate.getFullYear() === currentYear ||
+    (t.calS.getFullYear() === currentYear)
+  );
+
+  if (!yr.length) {
+    container.innerHTML = '<p class="empty-note">No trips for ' + currentYear + '. Add a trip below or sync your Google Calendar.</p>';
+    return;
+  }
+
+  const conf = confirmedSorted();
+
+  const rows = yr.map((t, localIdx) => {
+    const abroad  = daysAbroad(t);
+    const srcIco  = t.source === 'google' ? '📅' : '✏️';
+    const confCls = 'confirm-lbl' + (t.confirmed ? ' yes' : '');
+
+    /* Chain detection against full sorted confirmed list */
+    const gIdx        = conf.findIndex(x => x.id === t.id);
+    const prevChained = gIdx > 0 && isChained(conf[gIdx - 1], t);
+    const nextChained = gIdx < conf.length - 1 && isChained(t, conf[gIdx + 1]);
+
+    /* Show chain badge on the dates that are affected */
+    const depNote = prevChained
+      ? '<br><span style="font-size:10px;color:#BA7517">⛓ abroad (direct)</span>' : '';
+    const retNote = nextChained
+      ? '<br><span style="font-size:10px;color:#BA7517">⛓ abroad (direct)</span>' : '';
+
+    const tripRow = `<tr>
+      <td>
+        <span class="trip-dot" style="background:${t.color}"></span>
+        <span class="trip-name-cell" title="${esc(t.title)}">${srcIco} ${esc(t.title)}</span>
+      </td>
+      <td><span class="cal-range">${fmtS(t.calS)} – ${fmtS(t.calE)}</span></td>
+      <td>
+        <input class="date-inp" type="date" value="${ymd(t.depDate)}"
+          onchange="setDep('${t.id}',this.value)" title="Actual departure (border crossing) date">
+        ${depNote}
+      </td>
+      <td>
+        <input class="date-inp" type="date" value="${ymd(t.retDate)}"
+          onchange="setRet('${t.id}',this.value)" title="Actual return (border crossing) date">
+        ${retNote}
+      </td>
+      <td><span class="abroad-badge${abroad===0?' zero':''}">${abroad} day${abroad!==1?'s':''}</span></td>
+      <td>
+        <label class="${confCls}" onclick="toggleConfirm('${t.id}')">
+          <input type="checkbox" ${t.confirmed?'checked':''} onclick="return false">
+          ${t.confirmed ? '✓ Confirmed' : 'Confirm'}
+        </label>
+      </td>
+      <td><button class="rm-btn" onclick="removeTrip('${t.id}')" title="Remove">×</button></td>
+    </tr>`;
+
+    /* Chain connector row — only between consecutive trips visible in current year view */
+    const nextYr = yr[localIdx + 1];
+    const chainConnector = (nextYr && isChained(t, nextYr)) ? `
+      <tr style="background:#FFF8E1;border-bottom:0.5px solid rgba(186,117,23,0.15)">
+        <td colspan="7" style="padding:5px 14px;text-align:center">
+          <span style="font-size:11px;color:#BA7517;font-weight:500">
+            ⛓ Direct transfer — no return to Russia —
+            ${fmtS(t.retDate)} &amp; ${fmtS(nextYr.depDate)} both count as abroad
+          </span>
+        </td>
+      </tr>` : '';
+
+    return tripRow + chainConnector;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="trips-scroll">
+      <table class="trips">
+        <thead>
+          <tr>
+            <th>Trip</th>
+            <th>Calendar dates</th>
+            <th>🛫 Departure date</th>
+            <th>🛬 Return date</th>
+            <th>Days abroad</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:#aaa;margin-top:6px;padding-left:2px">
+      Tip: departure &amp; return days = Russia days · ⛓ if next trip starts the following day, both crossing days count as abroad (direct transfer).
+    </div>`;
+}
+
+/* ════════════════════════════════════
+   CALENDAR
+   ════════════════════════════════════ */
+function renderCalendar() {
+  el('cal-year').textContent = currentYear;
+  const today  = midnight(new Date());
+  const active = trips.filter(t => t.confirmed);
+
+  /* Build day-map with chain-aware crossing-day classification
+     ymd → {type: 'full'|'cross', trip}
+     'full'  = abroad day (solid colour)
+     'cross' = border crossing day that counts as Russia (diagonal stripe) */
+  const dayMap = {};
+  const conf   = active.sort((a, b) => a.depDate - b.depDate);
+
+  conf.forEach((t, idx) => {
+    const dep     = midnight(t.depDate);
+    const ret     = midnight(t.retDate);
+    const sameDay = dep.getTime() === ret.getTime();
+
+    const prevChained = idx > 0 && isChained(conf[idx - 1], t);
+    const nextChained = idx < conf.length - 1 && isChained(t, conf[idx + 1]);
+
+    /* Departure day: Russia if not chained to previous trip, abroad if chained */
+    markDay(dayMap, dep, prevChained ? 'full' : 'cross', t);
+
+    /* Return day (if different from dep): Russia if not chained to next trip */
+    if (!sameDay) markDay(dayMap, ret, nextChained ? 'full' : 'cross', t);
+
+    /* All days strictly between dep and ret: always abroad */
+    let cur = new Date(dep); cur.setDate(cur.getDate() + 1);
+    while (cur < ret) { markDay(dayMap, cur, 'full', t); cur.setDate(cur.getDate() + 1); }
+  });
+
+  /* Legend */
+  const legend = el('cal-legend');
+  legend.innerHTML = active.map(t =>
+    `<div class="leg-item"><div class="leg-sw" style="background:${t.color}"></div>${esc(t.title)}</div>`
+  ).join('');
+  if (active.length) legend.innerHTML += `
+    <div class="leg-item">
+      <div class="leg-cross" style="background:repeating-linear-gradient(45deg,#ddd,#ddd 2px,#fff 2px,#fff 5px)"></div>
+      Border crossing (Russia day)
+    </div>
+    <div class="leg-item">
+      <div class="leg-sw" style="box-shadow:inset 0 0 0 2px #D85A30;background:transparent"></div>Today
+    </div>`;
+
+  const wrap = el('cal-months'); wrap.innerHTML = '';
+  for (let m = 0; m < 12; m++) wrap.appendChild(buildMonth(m, today, dayMap));
+}
+
+function markDay(map, date, type, trip) {
+  const k = ymd(date);
+  /* 'full' wins over 'cross' if already set by another trip */
+  if (!map[k] || (map[k].type === 'cross' && type === 'full')) map[k] = {type, trip};
+}
+
+function buildMonth(month, today, dayMap) {
+  const container = document.createElement('div');
+  const hdr = mk('div','month-hdr');
+  hdr.textContent = MONTHS[month] + ' ' + currentYear;
+  container.appendChild(hdr);
+
+  const grid = mk('div','cal-grid');
+  const cwh = mk('div','cal-cw-hdr'); cwh.textContent='CW'; grid.appendChild(cwh);
+  DOW.forEach(d => { const c=mk('div','cal-dow'); c.textContent=d; grid.appendChild(c); });
+
+  const firstDay = new Date(currentYear, month, 1);
+  const startDow = (firstDay.getDay() + 6) % 7;
+  const firstMon = new Date(firstDay); firstMon.setDate(firstDay.getDate() - startDow);
+  grid.appendChild(cwCell(firstMon));
+
+  for (let i = 0; i < startDow; i++) { const e=mk('div','cal-day empty'); grid.appendChild(e); }
+
+  const dim = new Date(currentYear, month + 1, 0).getDate();
+  for (let d = 1; d <= dim; d++) {
+    const date = new Date(currentYear, month, d);
+    const dow  = (date.getDay() + 6) % 7;
+    if (dow === 0 && d > 1) grid.appendChild(cwCell(date));
+
+    const cell = mk('div','cal-day');
+    const key  = ymd(date);
+    const info = dayMap[key];
+    const isTd = midnight(date).getTime() === today.getTime();
+
+    if (info) {
+      const col = info.trip.color;
+      if (info.type === 'full') {
+        cell.classList.add('trip-full');
+        cell.style.background = col;
+        addTip(cell, fmtF(date) + '  ·  ' + info.trip.title + ' (abroad)');
+      } else {
+        /* Crossing day — diagonal stripe in trip colour, border */
+        cell.classList.add('trip-cross');
+        const light = col + '55';  /* ~33% opacity hex */
+        cell.style.background = `repeating-linear-gradient(45deg,${light},${light} 3px,${col}99 3px,${col}99 6px)`;
+        cell.style.border = '1.5px solid ' + col;
+        addTip(cell, fmtF(date) + '  ·  ' + info.trip.title + ' (border crossing — Russia day)');
+      }
+    }
+    if (isTd) cell.classList.add('today-ring');
+
+    const num = mk('div','cal-day-num'); num.textContent = d;
+    cell.appendChild(num);
+    grid.appendChild(cell);
+  }
+
+  container.appendChild(grid);
+  return container;
+}
+
+function addTip(cell, text) {
+  const tip = mk('div','cal-tip'); tip.textContent = text; cell.appendChild(tip);
+}
+
+function cwCell(monDate) {
+  const label = 'CW' + pad(isoWeek(monDate));
+  const c = mk('div','cal-cw'); c.appendChild(document.createTextNode(label));
+  const tip = mk('div','cw-tip'); tip.textContent = label; c.appendChild(tip);
+  return c;
+}
+
+/* ════════════════════════════════════
+   EXPORT CSV
+   ════════════════════════════════════ */
+function exportCSV() {
+  const lines = [
+    '# Tax Residency Report — ' + currentYear,
+    '# Generated: ' + new Date().toLocaleDateString('en-GB'),
+    '# Rule: departure and return days = Russia days; only days between count as abroad',
+    '',
+    'Trip,Source,Calendar Start,Calendar End,Departure Date,Return Date,Days Abroad,Confirmed',
+  ];
+  trips.forEach(t => {
+    lines.push([
+      '"' + t.title.replace(/"/g,'""') + '"',
+      t.source,
+      ymd(t.calS), ymd(t.calE),
+      ymd(t.depDate), ymd(t.retDate),
+      daysAbroad(t),
+      t.confirmed ? 'Yes' : 'No',
+    ].join(','));
+  });
+  lines.push('');
+  lines.push('Total days abroad (confirmed),' + totalAbroad());
+  lines.push('Threshold,' + TARGET);
+  lines.push('Status,' + (totalAbroad() >= TARGET ? 'Non-resident (likely)' : 'Tax resident'));
+
+  const blob = new Blob([lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'tax-residency-' + currentYear + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ════════════════════════════════════
+   IMPORT CSV
+   ════════════════════════════════════ */
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = ''; /* reset so same file can be re-imported */
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const lines  = e.target.result.split(/\r?\n/);
+    const parsed = [];
+    let headerPassed = false;
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      /* Header row */
+      if (line.startsWith('Trip,Source,')) { headerPassed = true; continue; }
+      if (!headerPassed) continue;
+      /* Summary rows at the end */
+      if (/^(Total days|Threshold|Status)/i.test(line)) continue;
+
+      /* Parse CSV row (handles quoted fields with commas inside) */
+      const cols = splitCSVRow(line);
+      if (cols.length < 6) continue;
+
+      const title  = cols[0];
+      /* cols[1] = source — always treat as manual on import */
+      const calSRaw = cols[2];
+      const calERaw = cols[3];
+      const depRaw  = cols[4];
+      const retRaw  = cols[5];
+      /* cols[6] = days abroad (calculated, ignored) */
+      const conf = (cols[7] || '').toLowerCase() === 'yes';
+
+      if (!isValidYMD(depRaw) || !isValidYMD(retRaw)) continue;
+
+      const dep = parseD(depRaw);
+      const ret = parseD(retRaw);
+      if (dep > ret) continue;
+
+      parsed.push({
+        id:        'imp_' + Date.now() + '_' + parsed.length,
+        source:    'manual',
+        title:     title || 'Imported trip',
+        calS:      isValidYMD(calSRaw) ? parseD(calSRaw) : new Date(dep),
+        calE:      isValidYMD(calERaw) ? parseD(calERaw) : new Date(ret),
+        depDate:   dep,
+        retDate:   ret,
+        confirmed: conf,
+        color:     PALETTE[parsed.length % PALETTE.length],
+      });
+    }
+
+    if (!parsed.length) {
+      alert('No valid trips found in the file.\n\nMake sure you are importing a CSV previously exported from this app.');
+      return;
+    }
+
+    /* Ask user: replace or merge */
+    const replace = trips.length === 0 || confirm(
+      `Found ${parsed.length} trip(s) in the file.\n\n` +
+      'OK → Replace all current trips with imported data\n' +
+      'Cancel → Merge (add to existing trips, skip duplicates)'
+    );
+
+    if (replace) {
+      trips = parsed;
+    } else {
+      /* Merge — skip duplicates matching by depDate + retDate + title */
+      parsed.forEach(imp => {
+        const dup = trips.find(t =>
+          ymd(t.depDate) === ymd(imp.depDate) &&
+          ymd(t.retDate) === ymd(imp.retDate) &&
+          t.title === imp.title
+        );
+        if (!dup) trips.push(imp);
+      });
+    }
+
+    assignColors();
+    saveData();
+
+    /* If not signed into Google, switch to manual mode so results show */
+    if (!accessToken) enterManualMode(true);
+    else render();
+
+    /* Brief success notice */
+    showImportNotice(parsed.length, replace);
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function showImportNotice(count, replaced) {
+  const old = el('import-notice');
+  if (old) old.remove();
+  const box = mk('div','notice n-green');
+  box.id = 'import-notice';
+  box.style.marginBottom = '14px';
+  box.innerHTML = `✓ <b>${replaced ? 'Imported' : 'Merged'} ${count} trip${count!==1?'s':''}</b> successfully from CSV.`;
+  el('controls-row').insertAdjacentElement('afterend', box);
+  setTimeout(() => { if (box.parentNode) box.remove(); }, 5000);
+}
+
+/* Split a single CSV line respecting quoted fields */
+function splitCSVRow(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; } /* escaped quote */
+      else inQ = !inQ;
+    } else if (ch === ',' && !inQ) {
+      result.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function isValidYMD(s) {
+  return s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s).getTime());
+}
+
+/* ════════════════════════════════════
+   HELPERS
+   ════════════════════════════════════ */
+function el(id) { return document.getElementById(id); }
+function mk(tag,cls) { const e=document.createElement(tag); if(cls)e.className=cls; return e; }
+function pad(n) { return String(n).padStart(2,'0'); }
+function midnight(d) { const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function parseD(s) { const p=s.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); }
+function ymd(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function fmtS(d) { return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear(); }
+function fmtF(d) { return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function isoWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const dow = d.getUTCDay() || 7; d.setUTCDate(d.getUTCDate()+4-dow);
+  const y = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil(((d-y)/864e5+1)/7);
+}
+
+/* Boot */
+init();
+</script>
+</body>
+</html>
